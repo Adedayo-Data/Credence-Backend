@@ -7,7 +7,7 @@ API and services for the Credence economic trust protocol. Provides health check
 This service is part of [Credence](../README.md). It will support:
 
 - Public query API (trust score, bond status, attestations)
-- Horizon listener for bond/slash events (future)
+- **Horizon listener / identity state sync** – Reconciles DB with on-chain bond state (see [Identity state sync](#identity-state-sync)).
 - Reputation engine (off-chain score from bond data) (future)
 
 ## Prerequisites
@@ -91,6 +91,23 @@ npm run test:coverage
 ```
 
 Scenarios covered: all dependencies up, DB down (503), Redis down (503), both down (503), only external down (200 degraded), liveness always 200, and no dependencies configured (200 ok).
+
+### Identity state sync
+
+The **identity state sync** listener keeps database identity and bond state in sync with on-chain state (reconciliation or full refresh). Use it to correct drift from missed events or for recovery.
+
+- **Location:** `src/listeners/identityStateSync.ts`
+- **Reconciliation by address:** `sync.reconcileByAddress(address)` – fetches current state from the contract, diffs with DB, and updates the store if there is drift.
+- **Full resync:** `sync.fullResync()` – reconciles all known identities (union of store and contract addresses). Use for recovery or bootstrap.
+
+You supply:
+
+- **ContractReader** – Fetches current bond/identity state from chain (e.g. Horizon or contract reads). Implement `getIdentityState(address)` and optionally `getAllIdentityAddresses()`.
+- **IdentityStateStore** – Your persistence layer (e.g. DB). Implement `get`, `set`, and `getAllAddresses`.
+
+State shape is `IdentityState`: `address`, `bondedAmount`, `bondStart`, `bondDuration`, `active`. See `src/listeners/types.ts`.
+
+Tests cover: no drift (no update), single drift (one address corrected), full resync (multiple drifts), chain missing, store-only addresses, and error handling.
 
 ## Tech
 
