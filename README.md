@@ -46,6 +46,9 @@ API runs at [http://localhost:3000](http://localhost:3000). The frontend proxies
 | `npm run build` | Compile TypeScript       |
 | `npm start`     | Run compiled `dist/`     |
 | `npm run lint`  | Run ESLint               |
+| `npm test`      | Run tests                |
+| `npm run test:integration` | Run DB integration tests |
+| `npm run coverage` | Run tests with coverage report |
 
 ## API (current)
 
@@ -62,3 +65,11 @@ API runs at [http://localhost:3000](http://localhost:3000). The frontend proxies
 - Express
 
 Extend with PostgreSQL, Redis, and Horizon event ingestion when implementing the full architecture.
+
+## Integration tests
+
+Repository integration tests are under `tests/integration/` and execute against real PostgreSQL.
+
+- Use Docker/Testcontainers automatically: `npm run test:integration`
+- Use an existing DB in CI: `TEST_DATABASE_URL=postgresql://... npm run test:integration`
+- Coverage report: `npm run coverage`
