@@ -1,14 +1,15 @@
 import express from 'express'
 import { loadConfig } from './config/index.js'
+import { createHealthRouter } from './routes/health.js'
+import { createDefaultProbes } from './services/health/probes.js'
 
 const config = loadConfig()
 const app = express()
 
 app.use(express.json())
 
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'credence-backend' })
-})
+const healthProbes = createDefaultProbes()
+app.use('/api/health', createHealthRouter(healthProbes))
 
 app.get('/api/trust/:address', (req, res) => {
   const { address } = req.params
