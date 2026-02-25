@@ -18,6 +18,19 @@ describe("API Endpoints", () => {
       const address =
         "GABC7IXPV3YWQXKQZQXQZQXQZQXQZQXQZQXQZQXQZQXQZQXQZQXQZQXQ";
       const response = await request(app).get(`/api/trust/${address}`);
+      expect(response.status).toBe(200)
+      expect(response.body).toMatchObject({
+        status: 'ok',
+        service: 'credence-backend',
+      })
+      expect(response.body).toHaveProperty('dependencies')
+    })
+  })
+
+  describe('GET /api/trust/:address', () => {
+    it('should return trust score for an address', async () => {
+      const address = '0x742d35Cc6634C0532925a3b844Bc454e4438f44e'
+      const response = await request(app).get(`/api/trust/${address}`)
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({
@@ -28,6 +41,12 @@ describe("API Endpoints", () => {
         attestationCount: 0,
       });
     });
+      })
+    })
+
+    it('should handle different addresses', async () => {
+      const address = '0x0000000000000000000000000000000000000001'
+      const response = await request(app).get(`/api/trust/${address}`)
 
     it("should handle different addresses", async () => {
       const address =
@@ -38,6 +57,10 @@ describe("API Endpoints", () => {
       expect(response.body.address).toBe(address);
     });
   });
+  describe('GET /api/bond/:address', () => {
+    it('should return bond status for an address', async () => {
+      const address = '0x742d35Cc6634C0532925a3b844Bc454e4438f44e'
+      const response = await request(app).get(`/api/bond/${address}`)
 
   describe("GET /api/bond/:address", () => {
     it("should return 400 for invalid address format", async () => {
@@ -48,6 +71,9 @@ describe("API Endpoints", () => {
       expect(response.status).toBe(400);
       expect(response.body.error).toMatch(/Invalid address format/);
     });
+    it('should handle different addresses', async () => {
+      const address = '0x0000000000000000000000000000000000000001'
+      const response = await request(app).get(`/api/bond/${address}`)
 
     it("should return 404 for valid address with no bond", async () => {
       const address = "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266";
