@@ -149,6 +149,7 @@ All configuration is driven by environment variables. Copy `.env.example` to `.e
 | `npm run build`      | Compile TypeScript       |
 | `npm start`          | Run compiled `dist/`     |
 | `npm run lint`       | Run ESLint               |
+| `npm run test`       | Run tests                |
 | `npm test`           | Run test suite           |
 | `npm run test:coverage` | Run tests with coverage |
 
@@ -167,6 +168,10 @@ All configuration is driven by environment variables. Copy `.env.example` to `.e
 | GET    | `/api/health`           | Health check           |
 | GET    | `/api/trust/:address`   | Trust score            |
 | GET    | `/api/bond/:address`    | Bond status (stub)     |
+| GET    | `/api/attestations/:address` | List attestations |
+| POST   | `/api/attestations`      | Create attestation     |
+
+Invalid input returns **400** with `{ "error": "Validation failed", "details": [{ "path", "message" }] }`. See [docs/VALIDATION.md](docs/VALIDATION.md).
 | GET    | `/api/attestations/:address` | Attestations (stub)      |
 | GET    | `/api/verification/:address` | Verification proof (stub)|
 
@@ -308,6 +313,7 @@ try {
 - Node.js
 - TypeScript
 - Express
+- Zod (request validation)
 - Redis (caching layer)
 - Vitest (testing)
 - Zod (env validation)
