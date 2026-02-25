@@ -326,4 +326,13 @@ try {
 - Integration notes: `docs/stellar-integration.md`
 - Tests: `src/clients/soroban.test.ts`
 
+Extend with PostgreSQL, Redis, and Horizon event ingestion when implementing the full architecture.
+
+## Integration tests
+
+Repository integration tests are under `tests/integration/` and execute against real PostgreSQL.
+
+- Use Docker/Testcontainers automatically: `npm run test:integration`
+- Use an existing DB in CI: `TEST_DATABASE_URL=postgresql://... npm run test:integration`
+- Coverage report: `npm run coverage`
 Extend with PostgreSQL and Horizon event ingestion when implementing the full architecture.
