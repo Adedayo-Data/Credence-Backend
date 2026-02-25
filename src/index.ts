@@ -1,6 +1,8 @@
 import express from 'express'
 import { generateApiKey, revokeApiKey, rotateApiKey, listApiKeys } from './services/apiKeys.js'
 import { requireApiKey } from './middleware/apiKey.js'
+import { createHealthRouter } from './routes/health.js'
+import { createDefaultProbes } from './services/health/probes.js'
 
 const app = express()
 const PORT = process.env.PORT ?? 3000
@@ -12,6 +14,8 @@ app.use(express.json())
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', service: 'credence-backend' })
 })
+const healthProbes = createDefaultProbes()
+app.use('/api/health', createHealthRouter(healthProbes))
 
 // ── API Key Management ────────────────────────────────────────────────────────
 
