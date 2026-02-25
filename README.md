@@ -14,12 +14,20 @@ This service is part of [Credence](../README.md). It will support:
 
 - Node.js 18+
 - npm or pnpm
+- Redis server (for caching)
+- Docker & Docker Compose (for containerised dev)
 
 ## Setup
 
 ```bash
 npm install
+# Set Redis URL in environment
+export REDIS_URL=redis://localhost:6379
+cp .env.example .env
+# Edit .env with your actual values
 ```
+
+The server **fails fast** on startup if any required environment variable is missing or invalid. See [Environment Variables](#environment-variables) below.
 
 ## Run locally
 
@@ -38,43 +46,89 @@ npm start
 
 API runs at [http://localhost:3000](http://localhost:3000). The frontend proxies `/api` to this URL.
 
-## Environment Variables
+## Docker (recommended for local dev)
 
-| Variable | Required | Description |
-|---|---|---|
-| `PORT` | No | Port to listen on (default `3000`) |
-| `ALLOWED_ORIGINS` | Yes (production) | Comma-separated list of allowed CORS origins |
-| `NODE_ENV` | No | Set to `development` to bypass CORS checks |
-| `DATABASE_URL` | No | PostgreSQL connection string |
-| `REDIS_URL` | No | Redis connection string |
+The project ships with **Dockerfile**, **docker-compose.yml**, and an example env file so you can spin up the full stack (API + PostgreSQL + Redis) in one command.
 
-**Example `.env`:**
+### Quick start
 
-```env
-PORT=3000
-ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3001
+```bash
+# 1. Create your local env file
+cp .env.example .env
+
+# 2. Build and start all services
+docker compose up --build
+
+# 3. Verify health
+curl http://localhost:3000/api/health
+# → {"status":"ok","service":"credence-backend"}
 ```
 
-In production, only origins listed in `ALLOWED_ORIGINS` are permitted. If `ALLOWED_ORIGINS` is empty, all cross-origin requests are denied. Requests with no `Origin` header (curl, server-to-server) are always allowed.
+### Services
+
+| Service    | Port  | Description                  |
+|------------|-------|------------------------------|
+| `backend`  | 3000  | Express / TypeScript API     |
+| `postgres` | 5432  | PostgreSQL 16                |
+| `redis`    | 6379  | Redis 7                     |
+
+All ports are configurable via `.env` (see `.env.example`).
+
+### Seeding the database
+
+Drop any `.sql` files into the `init-db/` directory. PostgreSQL will execute them **once** when the data volume is first created. A placeholder file (`init-db/001_schema.sql`) is included as a starting point.
+
+To re-run init scripts, remove the volume and restart:
+
+```bash
+docker compose down -v   # removes data volumes
+docker compose up --build
+```
+
+### Useful commands
+
+```bash
+# Stop all services
+docker compose down
+
+# Stop and remove volumes (reset DB/Redis data)
+docker compose down -v
+
+# View logs
+docker compose logs -f backend
+
+# Rebuild only the backend image
+docker compose build backend
+
+# Open a psql shell
+docker compose exec postgres psql -U credence
+```
 
 ## Scripts
 
-| Command              | Description              |
-|----------------------|--------------------------|
-| `npm run dev`        | Start with tsx watch     |
-| `npm run build`      | Compile TypeScript       |
-| `npm start`          | Run compiled `dist/`     |
-| `npm run lint`       | Run ESLint               |
-| `npm test`           | Run tests                |
-| `npm run test:coverage` | Run tests with coverage |
+| Command                 | Description              |
+|-------------------------|---------------------------|
+| `npm run dev`           | Start with tsx watch     |
+| `npm run build`         | Compile TypeScript       |
+| `npm start`             | Run compiled `dist/`     |
+| `npm run lint`          | Run ESLint               |
+| `npm test`              | Run tests                |
+| `npm run test:watch`    | Run tests in watch mode  |
+| `npm run test:coverage` | Run tests with coverage  |
 
 ## API (current)
 
-| Method | Path                    | Description            |
-|--------|-------------------------|------------------------|
+| Method | Path                         | Description              |
+|--------|------------------------------|---------------------------|
 | GET    | `/api/health`           | Health check           |
+| GET    | `/api/health/cache`     | Redis cache health check |
 | GET    | `/api/trust/:address`   | Trust score            |
 | GET    | `/api/bond/:address`    | Bond status (stub)     |
+| GET    | `/api/attestations/:address` | List attestations |
+| POST   | `/api/attestations`      | Create attestation     |
+| GET    | `/api/verification/:address` | Verification proof (stub)|
+
+Invalid input returns **400** with `{ "error": "Validation failed", "details": [{ "path", "message" }] }`. See [docs/VALIDATION.md](docs/VALIDATION.md).
 
 Full request/response documentation, cURL examples, and import instructions:
 **[docs/api.md](docs/api.md)**
@@ -145,11 +199,108 @@ State shape is `IdentityState`: `address`, `bondedAmount`, `bondStart`, `bondDur
 
 Tests cover: no drift (no update), single drift (one address corrected), full resync (multiple drifts), chain missing, store-only addresses, and error handling.
 
+## Caching
+
+The service includes a Redis-based caching layer with:
+
+- **Connection management** - Singleton Redis client with health monitoring
+- **Namespacing** - Automatic key namespacing (e.g., `trust:score:0x123`)
+- **TTL support** - Set expiration times on cached values
+- **Health checks** - Built-in Redis health monitoring
+- **Graceful fallback** - Continues working when Redis is unavailable
+
+See [docs/caching.md](./docs/caching.md) for detailed documentation.
+
+## Developer SDK
+
+A TypeScript/JavaScript SDK is available at `src/sdk/` for programmatic access to the API. See [docs/sdk.md](docs/sdk.md) for full documentation.
+
+## Configuration
+
+The config module (`src/config/index.ts`) centralizes all environment handling:
+
+- Loads `.env` files via [dotenv](https://github.com/motdotla/dotenv) for local development
+- Validates **all** environment variables at startup using [Zod](https://zod.dev)
+- Fails fast with a clear error message listing every invalid or missing variable
+- Exports a fully typed `Config` object consumed by the rest of the application
+
+### Usage
+
+```ts
+import { loadConfig } from './config/index.js'
+
+const config = loadConfig()
+console.log(config.port)          // number
+console.log(config.db.url)        // string
+console.log(config.features)      // { trustScoring: boolean, bondEvents: boolean }
+```
+
+For testing, use `validateConfig()` which throws a `ConfigValidationError` instead of calling `process.exit`:
+
+```ts
+import { validateConfig, ConfigValidationError } from './config/index.js'
+
+try {
+  const config = validateConfig({ DB_URL: 'bad' })
+} catch (err) {
+  if (err instanceof ConfigValidationError) {
+    console.error(err.issues) // Zod issues array
+  }
+}
+```
+
+## Environment Variables
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `PORT` | No | `3000` | Server port (1–65535) |
+| `NODE_ENV` | No | `development` | `development`, `production`, or `test` |
+| `LOG_LEVEL` | No | `info` | `debug`, `info`, `warn`, or `error` |
+| `DB_URL` | **Yes** | — | PostgreSQL connection URL |
+| `REDIS_URL` | **Yes** | — | Redis connection URL |
+| `DATABASE_URL` | No | — | PostgreSQL connection URL (legacy, mapped to DB_URL) |
+| `JWT_SECRET` | **Yes** | — | JWT signing secret (≥ 32 chars) |
+| `JWT_EXPIRY` | No | `1h` | JWT token lifetime |
+| `ENABLE_TRUST_SCORING` | No | `false` | Enable trust scoring feature |
+| `ENABLE_BOND_EVENTS` | No | `false` | Enable bond event processing |
+| `HORIZON_URL` | No | — | Stellar Horizon API URL |
+| `CORS_ORIGIN` | No | `*` | Allowed CORS origin |
+| `ALLOWED_ORIGINS` | No | `*` | Comma-separated list of allowed CORS origins |
+
+**Example `.env`:**
+
+```env
+PORT=3000
+ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3001
+DB_URL=postgresql://credence:credence@localhost:5432/credence
+REDIS_URL=redis://localhost:6379
+```
+
+In production, only origins listed in `CORS_ORIGIN` or `ALLOWED_ORIGINS` are permitted.
+
 ## Tech
 
 - Node.js
 - TypeScript
 - Express
 - cors
+- Zod (request validation & env validation)
+- Redis (caching layer)
+- dotenv (.env file support)
+- Vitest / Jest (testing)
+
+## Stellar/Soroban Integration
+
+- Adapter implementation: `src/clients/soroban.ts`
+- Integration notes: `docs/stellar-integration.md`
+- Tests: `src/clients/soroban.test.ts`
 
 Extend with PostgreSQL, Redis, and Horizon event ingestion when implementing the full architecture.
+
+## Integration tests
+
+Repository integration tests are under `tests/integration/` and execute against real PostgreSQL.
+
+- Use Docker/Testcontainers automatically: `npm run test:integration`
+- Use an existing DB in CI: `TEST_DATABASE_URL=postgresql://... npm run test:integration`
+- Coverage report: `npm run coverage`
