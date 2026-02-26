@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { subscribeBondCreationEvents } from '../listeners/horizonBondEvents.js'
 
@@ -41,37 +42,37 @@ describe('Horizon Bond Creation Listener', () => {
 =======
 import { subscribeBondCreationEvents } from '../listeners/horizonBondEvents';
 import { upsertIdentity, upsertBond } from '../services/identityService';
+=======
+import { vi, describe, it, beforeEach, expect } from 'vitest'
+>>>>>>> upstream/main
 
-// Explicitly type mockStream and events
-let mockStream: (op: any) => Promise<void>;
-let events: any[] = [];
+// vi.mock is hoisted so it intercepts stellar-sdk before horizonBondEvents.ts loads
+vi.mock('stellar-sdk', () => {
+  class ServerMock {
+    operations() {
+      return {
+        forAsset: () => ({
+          cursor: () => ({ stream: vi.fn() }),
+        }),
+      }
+    }
+  }
+  return { Server: ServerMock }
+})
+
+vi.mock('../services/identityService.js', () => ({
+  upsertIdentity: vi.fn().mockResolvedValue(undefined),
+  upsertBond: vi.fn().mockResolvedValue(undefined),
+}))
+
+import { subscribeBondCreationEvents } from '../listeners/horizonBondEvents.js'
 
 describe('Horizon Bond Creation Listener', () => {
-  let mockStream: (op: any) => Promise<void>;
-  let events: any[] = [];
-
-  beforeAll(() => {
-    // Mock Stellar SDK Server
-    jest.mock('stellar-sdk', () => ({
-      Server: jest.fn(() => ({
-        operations: jest.fn(() => ({
-          forAsset: jest.fn(() => ({
-            cursor: jest.fn(() => ({
-              stream: jest.fn(({ onmessage }: { onmessage: (op: any) => Promise<void> }) => {
-                mockStream = onmessage;
-              })
-            })
-          })),
-        }))
-      }))
-    }));
-  });
-
   beforeEach(() => {
-    events = [];
-    jest.clearAllMocks();
-  });
+    vi.clearAllMocks()
+  })
 
+<<<<<<< HEAD
   it('should parse and upsert bond creation events', async () => {
 >>>>>>> upstream/main
     const op = {
@@ -109,10 +110,21 @@ describe('Horizon Bond Creation Listener', () => {
     };
     const upsertIdentityMock = jest.spyOn(require('../services/identityService'), 'upsertIdentity').mockResolvedValue(true);
     const upsertBondMock = jest.spyOn(require('../services/identityService'), 'upsertBond').mockResolvedValue(true);
+=======
+  it('calls subscribeBondCreationEvents without throwing', () => {
+    const onEvent = vi.fn()
+    expect(() => subscribeBondCreationEvents(onEvent)).not.toThrow()
+  })
+>>>>>>> upstream/main
 
-  subscribeBondCreationEvents((event: any) => events.push(event));
-    await mockStream(op);
+  it('accepts a callback argument', () => {
+    const onEvent = vi.fn()
+    subscribeBondCreationEvents(onEvent)
+    // callback should not be called until a bond event arrives
+    expect(onEvent).not.toHaveBeenCalled()
+  })
 
+<<<<<<< HEAD
     expect(upsertIdentityMock).toHaveBeenCalledWith({ id: 'GABC...' });
     expect(upsertBondMock).toHaveBeenCalledWith({ id: 'bond123', amount: '1000', duration: '365' });
     expect(events.length).toBe(1);
@@ -155,4 +167,10 @@ describe('Horizon Bond Creation Listener', () => {
     expect(upsertBondMock).toHaveBeenCalledTimes(2); // Should be idempotent in real DB
   });
 });
+>>>>>>> upstream/main
+=======
+  it('works when no callback is provided', () => {
+    expect(() => subscribeBondCreationEvents(undefined)).not.toThrow()
+  })
+})
 >>>>>>> upstream/main
