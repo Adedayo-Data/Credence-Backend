@@ -119,3 +119,21 @@ export class IdentityService {
     return new Promise((resolve) => setTimeout(resolve, ms))
   }
 }
+
+/**
+ * Upsert an identity record
+ * 
+ * @param identity - Identity data to upsert
+ */
+export async function upsertIdentity(identity: any): Promise<void> {
+  // TODO: implement
+}
+
+/**
+ * Upsert a bond record
+ * 
+ * @param bond - Bond data to upsert
+ */
+export async function upsertBond(bond: any): Promise<void> {
+  // TODO: implement
+}

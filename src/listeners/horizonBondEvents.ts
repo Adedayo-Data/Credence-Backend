@@ -4,11 +4,11 @@
  * @module horizonBondEvents
  */
 
-import { Server } from 'stellar-sdk';
+import { Horizon } from 'stellar-sdk';
 import { upsertIdentity, upsertBond } from '../services/identityService.js';
 
 const HORIZON_URL = process.env.HORIZON_URL || 'https://horizon.stellar.org';
-const server = new Server(HORIZON_URL);
+const server = new Horizon.Server(HORIZON_URL);
 
 /**
  * Subscribe to bond creation events from Horizon
@@ -19,7 +19,7 @@ export function subscribeBondCreationEvents(onEvent: (event: any) => void) {
   let cursor = 'now';
   let stream;
   const startStream = () => {
-    stream = server.operations()
+    stream = (server.operations() as any)
       .forAsset('BOND') // Replace with actual asset code if needed
       .cursor(cursor)
       .stream({

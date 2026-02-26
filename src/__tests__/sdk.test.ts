@@ -5,7 +5,7 @@ import { CredenceApiError } from '../sdk/types.js'
 function mockFetch(body: unknown, init?: { status?: number; statusText?: string; headers?: Record<string, string> }) {
   const status = init?.status ?? 200
   const statusText = init?.statusText ?? 'OK'
-  return jest.fn().mockResolvedValue({
+  return jest.fn<any>().mockResolvedValue({
     ok: status >= 200 && status < 300,
     status,
     statusText,
@@ -196,7 +196,7 @@ describe('CredenceClient', () => {
     })
 
     it('throws CredenceApiError on network error', async () => {
-      global.fetch = jest.fn().mockRejectedValue(new TypeError('fetch failed')) as any
+      global.fetch = jest.fn<any>().mockRejectedValue(new TypeError('fetch failed')) as any
 
       await expect(client.getTrustScore('0x1')).rejects.toThrow(CredenceApiError)
       await expect(client.getTrustScore('0x1')).rejects.toThrow('Network error: fetch failed')
@@ -204,7 +204,7 @@ describe('CredenceClient', () => {
 
     it('throws CredenceApiError on timeout (AbortError)', async () => {
       const abortError = new DOMException('The operation was aborted', 'AbortError')
-      global.fetch = jest.fn().mockRejectedValue(abortError) as any
+      global.fetch = jest.fn<any>().mockRejectedValue(abortError) as any
 
       await expect(client.getVerificationProof('0x1')).rejects.toThrow('Request timed out')
     })
@@ -212,7 +212,7 @@ describe('CredenceClient', () => {
     it('throws CredenceApiError on timeout (Error with AbortError name)', async () => {
       const abortError = new Error('The operation was aborted')
       abortError.name = 'AbortError'
-      global.fetch = jest.fn().mockRejectedValue(abortError) as any
+      global.fetch = jest.fn<any>().mockRejectedValue(abortError) as any
 
       await expect(client.getVerificationProof('0x1')).rejects.toThrow('Request timed out')
     })
@@ -232,7 +232,7 @@ describe('CredenceClient', () => {
     })
 
     it('handles non-Error thrown values during fetch', async () => {
-      global.fetch = jest.fn().mockRejectedValue('string error') as any
+      global.fetch = jest.fn<any>().mockRejectedValue('string error') as any
 
       await expect(client.getTrustScore('0x1')).rejects.toThrow('Network error: string error')
     })

@@ -30,7 +30,7 @@ describe('JobScheduler', () => {
 
   beforeEach(() => {
     mockJob = {
-      run: jest.fn().mockResolvedValue({
+      run: jest.fn<any>().mockResolvedValue({
         processed: 10,
         saved: 10,
         errors: 0,
@@ -130,7 +130,7 @@ describe('JobScheduler', () => {
   })
 
   it('handles job errors gracefully', async () => {
-    mockJob.run = jest.fn().mockRejectedValue(new Error('Job failed')) as any
+    mockJob.run = jest.fn<any>().mockRejectedValue(new Error('Job failed')) as any
 
     const logs: string[] = []
     scheduler = new JobScheduler(mockJob, {

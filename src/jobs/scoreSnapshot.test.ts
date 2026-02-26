@@ -12,7 +12,7 @@ describe('ScoreSnapshotJob', () => {
     savedSnapshots = []
 
     mockDataSource = {
-      getActiveAddresses: jest.fn().mockResolvedValue(['0xabc', '0xdef', '0xghi']),
+      getActiveAddresses: jest.fn<any>().mockResolvedValue(['0xabc', '0xdef', '0xghi']),
       getIdentityData: jest.fn().mockImplementation(async (address: any) => ({
         address,
         bondedAmount: '1000',
@@ -22,7 +22,7 @@ describe('ScoreSnapshotJob', () => {
     }
 
     mockStore = {
-      save: jest.fn().mockResolvedValue(undefined),
+      save: jest.fn<any>().mockResolvedValue(undefined),
       saveBatch: jest.fn().mockImplementation(async (snapshots: any) => {
         savedSnapshots.push(...snapshots)
       }),
@@ -71,7 +71,7 @@ describe('ScoreSnapshotJob', () => {
   })
 
   it('processes identities in batches', async () => {
-    mockDataSource.getActiveAddresses = jest.fn().mockResolvedValue([
+    mockDataSource.getActiveAddresses = jest.fn<any>().mockResolvedValue([
       '0xa1', '0xa2', '0xa3', '0xa4', '0xa5',
     ])
 
@@ -85,7 +85,7 @@ describe('ScoreSnapshotJob', () => {
   })
 
   it('handles missing identity data', async () => {
-    mockDataSource.getIdentityData = jest.fn()
+    mockDataSource.getIdentityData = jest.fn<any>()
       .mockResolvedValueOnce({ address: '0xabc', bondedAmount: '1000', active: true, attestationCount: 10 })
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({ address: '0xghi', bondedAmount: '500', active: true, attestationCount: 5 })
@@ -99,7 +99,7 @@ describe('ScoreSnapshotJob', () => {
   })
 
   it('continues on error when continueOnError is true', async () => {
-    mockDataSource.getIdentityData = jest.fn()
+    mockDataSource.getIdentityData = jest.fn<any>()
       .mockResolvedValueOnce({ address: '0xabc', bondedAmount: '1000', active: true, attestationCount: 10 })
       .mockRejectedValueOnce(new Error('Network error'))
       .mockResolvedValueOnce({ address: '0xghi', bondedAmount: '500', active: true, attestationCount: 5 })
@@ -115,7 +115,7 @@ describe('ScoreSnapshotJob', () => {
   })
 
   it('stops on error when continueOnError is false', async () => {
-    mockDataSource.getIdentityData = jest.fn()
+    mockDataSource.getIdentityData = jest.fn<any>()
       .mockResolvedValueOnce({ address: '0xabc', bondedAmount: '1000', active: true, attestationCount: 10 })
       .mockRejectedValueOnce(new Error('Network error'))
 
@@ -127,7 +127,7 @@ describe('ScoreSnapshotJob', () => {
   })
 
   it('handles batch save errors', async () => {
-    mockStore.saveBatch = jest.fn().mockRejectedValue(new Error('Database error'))
+    mockStore.saveBatch = jest.fn<any>().mockRejectedValue(new Error('Database error'))
 
     const job = new ScoreSnapshotJob(mockDataSource, mockStore, mockScoreComputer, {
       continueOnError: true,
@@ -168,7 +168,7 @@ describe('ScoreSnapshotJob', () => {
   })
 
   it('handles empty identity list', async () => {
-    mockDataSource.getActiveAddresses = jest.fn().mockResolvedValue([])
+    mockDataSource.getActiveAddresses = jest.fn<any>().mockResolvedValue([])
 
     const job = new ScoreSnapshotJob(mockDataSource, mockStore, mockScoreComputer)
     const result = await job.run()
@@ -195,7 +195,7 @@ describe('ScoreSnapshotJob', () => {
 
   it('processes large dataset efficiently', async () => {
     const addresses = Array.from({ length: 250 }, (_, i) => `0x${i}`)
-    mockDataSource.getActiveAddresses = jest.fn().mockResolvedValue(addresses)
+    mockDataSource.getActiveAddresses = jest.fn<any>().mockResolvedValue(addresses)
 
     const job = new ScoreSnapshotJob(mockDataSource, mockStore, mockScoreComputer, {
       batchSize: 100,
