@@ -12,7 +12,7 @@ export enum ApiScope {
  * Extended Express Request with API key metadata
  */
 export interface AuthenticatedRequest extends Request {
-  apiKey?: {
+  localApiKey?: {
     key: string
     scope: ApiScope
   }
@@ -70,7 +70,7 @@ export function requireApiKey(requiredScope: ApiScope) {
     }
 
     // Attach API key metadata to request
-    ;(req as AuthenticatedRequest).apiKey = { key: apiKey, scope }
+    ; (req as AuthenticatedRequest).localApiKey = { key: apiKey, scope }
     next()
   }
 }

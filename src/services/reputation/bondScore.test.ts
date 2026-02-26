@@ -3,7 +3,7 @@
  * Tests cover: normal cases, edge cases, slashed bonds, zero bonds
  */
 
-import { describe, it, expect } from 'vitest'
+import {  describe, it, expect  } from '@jest/globals'
 import { calculateBondScore, getBondMultiplier, getMaxBondScore } from './bondScore.js'
 import type { BondData } from './types.js'
 

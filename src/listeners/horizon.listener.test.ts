@@ -1,22 +1,16 @@
 // src/listeners/horizon.listener.test.ts
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 import { dbRepository } from '../db/repository.js';
 import { HorizonListener } from './horizon.listeners.js';
 
-// 1. Mock the DB Repository using Vitest
-vi.mock('../db/repository.js', () => ({
-  dbRepository: {
-    upsertNode: vi.fn(),
-    updateNodeStatus: vi.fn(),
-  },
-}));
+// We will use jest.spyOn instead of jest.mock for ESM compatibility
 
 describe('HorizonListener Logic', () => {
   let listener: HorizonListener;
 
   beforeEach(() => {
     // Reset mocks before each test to ensure a clean state
-    vi.clearAllMocks();
+    jest.clearAllMocks();
     listener = new HorizonListener(dbRepository);
   });
 
@@ -28,7 +22,7 @@ describe('HorizonListener Logic', () => {
         amount: '1000',
       };
 
-      vi.mocked(dbRepository.upsertNode).mockResolvedValue(true);
+      jest.spyOn(dbRepository, 'upsertNode').mockResolvedValue(true);
 
       await listener.handleEvent(mockBondEvent);
 
@@ -43,7 +37,7 @@ describe('HorizonListener Logic', () => {
         penalty: '500',
       };
 
-      vi.mocked(dbRepository.updateNodeStatus).mockResolvedValue(true);
+      jest.spyOn(dbRepository, 'updateNodeStatus').mockResolvedValue(true);
 
       await listener.handleEvent(mockSlashEvent);
 
@@ -57,7 +51,7 @@ describe('HorizonListener Logic', () => {
         nodeId: 'G_VALID_NODE_123',
       };
 
-      vi.mocked(dbRepository.updateNodeStatus).mockResolvedValue(true);
+      jest.spyOn(dbRepository, 'updateNodeStatus').mockResolvedValue(true);
 
       await listener.handleEvent(mockWithdrawalEvent);
 
@@ -101,7 +95,7 @@ describe('HorizonListener Logic', () => {
       };
 
       const dbError = new Error('Database connection timeout');
-      vi.mocked(dbRepository.upsertNode).mockRejectedValue(dbError);
+      jest.spyOn(dbRepository, 'upsertNode').mockRejectedValue(dbError);
 
       await expect(listener.handleEvent(mockBondEvent)).rejects.toThrow('Database connection timeout');
     });
@@ -113,14 +107,14 @@ describe('HorizonListener Logic', () => {
       };
 
       // Spying on console.log to avoid cluttering the test output
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => { });
 
       await listener.handleEvent(unknownEvent as any);
 
       expect(dbRepository.upsertNode).not.toHaveBeenCalled();
       expect(dbRepository.updateNodeStatus).not.toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalledWith('Ignored unknown event type: unknown_action');
-      
+
       consoleSpy.mockRestore();
     });
   });

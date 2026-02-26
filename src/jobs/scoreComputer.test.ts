@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import {  describe, it, expect  } from '@jest/globals'
 import { computeScore } from './scoreComputer.js'
 import type { IdentityData } from './types.js'
 

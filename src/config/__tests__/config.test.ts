@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect } from '@jest/globals'
 import { validateConfig, ConfigValidationError, envSchema } from '../index.js'
 
 /** Minimal valid env object reused across tests. */
@@ -129,7 +129,7 @@ describe('validateConfig – missing required variables', () => {
   it('throws with all missing fields reported at once', () => {
     try {
       validateConfig({})
-      expect.fail('Expected ConfigValidationError')
+      throw new Error('Expected ConfigValidationError')
     } catch (err) {
       expect(err).toBeInstanceOf(ConfigValidationError)
       const error = err as ConfigValidationError
@@ -205,7 +205,7 @@ describe('ConfigValidationError', () => {
   it('has descriptive message with field names', () => {
     try {
       validateConfig({})
-      expect.fail('Expected error')
+      throw new Error('Expected error')
     } catch (err) {
       expect(err).toBeInstanceOf(ConfigValidationError)
       const error = err as ConfigValidationError
@@ -218,7 +218,7 @@ describe('ConfigValidationError', () => {
   it('exposes raw Zod issues', () => {
     try {
       validateConfig({})
-      expect.fail('Expected error')
+      throw new Error('Expected error')
     } catch (err) {
       const error = err as ConfigValidationError
       expect(Array.isArray(error.issues)).toBe(true)

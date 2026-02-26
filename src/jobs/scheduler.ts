@@ -1,4 +1,5 @@
-import type { ScoreSnapshotJob, SnapshotJobResult } from './scoreSnapshot.js'
+import type { ScoreSnapshotJob } from './scoreSnapshot.js'
+import type { SnapshotJobResult } from './types.js'
 
 /**
  * Scheduler options.
@@ -42,7 +43,7 @@ export class JobScheduler {
   ) {
     this.intervalMs = options.intervalMs
     this.runOnStart = options.runOnStart ?? false
-    this.logger = options.logger ?? (() => {})
+    this.logger = options.logger ?? (() => { })
   }
 
   /**
@@ -120,7 +121,7 @@ export class JobScheduler {
  */
 export function parseCronToInterval(cronExpression: string): number {
   const parts = cronExpression.split(' ')
-  
+
   if (parts.length !== 5) {
     throw new Error('Invalid cron expression: must have 5 parts')
   }

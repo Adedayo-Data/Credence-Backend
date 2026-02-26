@@ -3,7 +3,7 @@
  * Tests cover: formula correctness, component integration, edge cases
  */
 
-import { describe, it, expect } from 'vitest'
+import {  describe, it, expect  } from '@jest/globals'
 import {
   calculateReputationScore,
   calculateReputationScoreWithCustomDuration,

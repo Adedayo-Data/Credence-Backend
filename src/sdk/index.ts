@@ -1,5 +1,5 @@
 export { CredenceClient } from './client.js'
-export {
+export type {
   CredenceConfig,
   CredenceApiError,
   TrustScore,

@@ -5,7 +5,7 @@
  */
 
 import { Server } from 'stellar-sdk';
-import { upsertIdentity, upsertBond } from '../services/identityService';
+import { upsertIdentity, upsertBond } from '../services/identityService.js';
 
 const HORIZON_URL = process.env.HORIZON_URL || 'https://horizon.stellar.org';
 const server = new Server(HORIZON_URL);
@@ -14,7 +14,7 @@ const server = new Server(HORIZON_URL);
  * Subscribe to bond creation events from Horizon
  * @param {function} onEvent Callback for each bond creation event
  */
-export function subscribeBondCreationEvents(onEvent) {
+export function subscribeBondCreationEvents(onEvent: (event: any) => void) {
   // Example: Listen to operations of type 'create_bond' (custom event)
   let cursor = 'now';
   let stream;
@@ -23,7 +23,7 @@ export function subscribeBondCreationEvents(onEvent) {
       .forAsset('BOND') // Replace with actual asset code if needed
       .cursor(cursor)
       .stream({
-        onmessage: async (op) => {
+        onmessage: async (op: any) => {
           cursor = op.paging_token;
           if (op.type === 'create_bond') {
             const event = parseBondEvent(op);
@@ -32,7 +32,7 @@ export function subscribeBondCreationEvents(onEvent) {
             if (onEvent) onEvent(event);
           }
         },
-        onerror: (err) => {
+        onerror: (err: any) => {
           console.error('Horizon stream error:', err);
           setTimeout(() => {
             startStream(); // Reconnect after delay
@@ -52,7 +52,7 @@ export function subscribeBondCreationEvents(onEvent) {
  * @param {object} op Operation object from Horizon
  * @returns {{identity: object, bond: object}}
  */
-function parseBondEvent(op) {
+function parseBondEvent(op: any) {
   // Example parsing logic
   return {
     identity: {

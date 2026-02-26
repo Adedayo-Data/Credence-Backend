@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import {  describe, it, expect, beforeAll, afterAll  } from '@jest/globals'
 import request from 'supertest'
 import { app } from './index.js'
 

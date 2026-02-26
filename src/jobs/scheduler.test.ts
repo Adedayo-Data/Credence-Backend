@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals'
 import { JobScheduler, parseCronToInterval, createScheduler } from './scheduler.js'
 import type { ScoreSnapshotJob } from './scoreSnapshot.js'
 
@@ -30,7 +30,7 @@ describe('JobScheduler', () => {
 
   beforeEach(() => {
     mockJob = {
-      run: vi.fn().mockResolvedValue({
+      run: jest.fn().mockResolvedValue({
         processed: 10,
         saved: 10,
         errors: 0,
@@ -44,7 +44,7 @@ describe('JobScheduler', () => {
     if (scheduler) {
       scheduler.stop()
     }
-    vi.restoreAllMocks()
+    jest.restoreAllMocks()
   })
 
   it('starts scheduler with interval', () => {
@@ -63,16 +63,16 @@ describe('JobScheduler', () => {
   })
 
   it('runs job at intervals', async () => {
-    vi.useFakeTimers()
+    jest.useFakeTimers()
     scheduler = new JobScheduler(mockJob, { intervalMs: 60000 })
     scheduler.start()
 
-    await vi.advanceTimersByTimeAsync(60000)
+    await jest.advanceTimersByTimeAsync(60000)
     expect(mockJob.run).toHaveBeenCalledTimes(1)
 
-    await vi.advanceTimersByTimeAsync(60000)
+    await jest.advanceTimersByTimeAsync(60000)
     expect(mockJob.run).toHaveBeenCalledTimes(2)
-    vi.useRealTimers()
+    jest.useRealTimers()
   })
 
   it('runs job immediately when runOnStart is true', async () => {
@@ -104,7 +104,7 @@ describe('JobScheduler', () => {
       })
     })
 
-    mockJob.run = vi.fn().mockReturnValue(jobPromise)
+    mockJob.run = jest.fn().mockReturnValue(jobPromise) as any
 
     scheduler = new JobScheduler(mockJob, { intervalMs: 100, runOnStart: true })
     scheduler.start()
@@ -130,7 +130,7 @@ describe('JobScheduler', () => {
   })
 
   it('handles job errors gracefully', async () => {
-    mockJob.run = vi.fn().mockRejectedValue(new Error('Job failed'))
+    mockJob.run = jest.fn().mockRejectedValue(new Error('Job failed')) as any
 
     const logs: string[] = []
     scheduler = new JobScheduler(mockJob, {

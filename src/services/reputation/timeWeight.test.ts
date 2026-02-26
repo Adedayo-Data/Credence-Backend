@@ -3,7 +3,7 @@
  * Tests cover: normal cases, edge cases, boundary conditions
  */
 
-import { describe, it, expect } from 'vitest'
+import {  describe, it, expect  } from '@jest/globals'
 import { calculateTimeWeight, getDecayRate, getMaxDuration } from './timeWeight.js'
 
 describe('timeWeight', () => {

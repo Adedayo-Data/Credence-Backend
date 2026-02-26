@@ -50,7 +50,7 @@ app.get(
   '/api/trust/:address',
   validate({ params: trustPathParamsSchema }),
   (req, res) => {
-    const { address } = req.validated!.params!
+    const { address } = req.validated!.params as { address: string }
     // Placeholder: in production, fetch from DB / reputation engine
     res.json({
       address,
@@ -67,7 +67,7 @@ app.get(
   '/api/bond/:address',
   validate({ params: bondPathParamsSchema }),
   (req, res) => {
-    const { address } = req.validated!.params!
+    const { address } = req.validated!.params as { address: string }
     res.json({
       address,
       bondedAmount: '0',
@@ -83,8 +83,8 @@ app.get(
   '/api/attestations/:address',
   validate({ params: attestationsPathParamsSchema, query: attestationsQuerySchema }),
   (req, res) => {
-    const { address } = req.validated!.params!
-    const { limit, offset } = req.validated!.query!
+    const { address } = req.validated!.params as { address: string }
+    const { limit, offset } = req.validated!.query as { limit?: number; offset?: number }
     res.json({
       address,
       limit,
@@ -99,7 +99,7 @@ app.post(
   '/api/attestations',
   validate({ body: createAttestationBodySchema }),
   (req, res) => {
-    const body = req.validated!.body!
+    const body = req.validated!.body as { subject: string; value: string; key?: string }
     res.status(201).json({
       subject: body.subject,
       value: body.value,

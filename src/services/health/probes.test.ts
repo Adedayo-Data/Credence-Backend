@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { jest,  describe, it, expect, beforeEach, afterEach,   } from '@jest/globals'
 import {
   createDbProbe,
   createRedisProbe,
@@ -7,7 +7,7 @@ import {
 } from './probes.js'
 
 // Mock pg so createDbProbe() real path returns up without a real DB
-vi.mock('pg', () => ({
+jest.mock('pg', () => ({
   default: {
     Pool: class {
       query = () => Promise.resolve({ rows: [] })
@@ -16,7 +16,7 @@ vi.mock('pg', () => ({
 }))
 
 // Mock ioredis so createRedisProbe() real path returns up without a real Redis
-vi.mock('ioredis', () => ({
+jest.mock('ioredis', () => ({
   default: class {
     ping = () => Promise.resolve('PONG')
   },

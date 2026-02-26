@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
+import { jest,  describe, it, expect, beforeEach,  afterEach  } from '@jest/globals'
 import {
   submitDispute,
   getDispute,
@@ -32,11 +32,11 @@ function validInput(overrides: Partial<DisputeInput> = {}): DisputeInput {
 describe('disputes', () => {
   beforeEach(() => {
     resetStore()
-    vi.useRealTimers()
+    jest.useRealTimers()
   })
 
   afterEach(() => {
-    vi.useRealTimers()
+    jest.useRealTimers()
   })
 
   // ---- validation ----

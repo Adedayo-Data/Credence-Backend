@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { jest,  describe, it, expect,   } from '@jest/globals'
 import {
   IdentityStateSync,
   createIdentityStateSync,
@@ -35,7 +35,7 @@ describe('IdentityStateSync', () => {
         set: async () => {},
         getAllAddresses: async () => ['0xabc'],
       }
-      const setSpy = vi.spyOn(store, 'set')
+      const setSpy = jest.spyOn(store, 'set')
       const sync = new IdentityStateSync(contract, store)
       const result = await sync.reconcileByAddress('0xabc')
       expect(result).toEqual({ address: '0xabc', updated: false, reason: 'no_drift' })
@@ -82,7 +82,7 @@ describe('IdentityStateSync', () => {
         set: async () => {},
         getAllAddresses: async () => ['0xold'],
       }
-      const setSpy = vi.spyOn(store, 'set')
+      const setSpy = jest.spyOn(store, 'set')
       const sync = new IdentityStateSync(contract, store)
       const result = await sync.reconcileByAddress('0xold')
       expect(result).toEqual({ address: '0xold', updated: false, reason: 'chain_missing' })
@@ -124,7 +124,7 @@ describe('IdentityStateSync', () => {
         set: async () => {},
         getAllAddresses: async () => [],
       }
-      const setSpy = vi.spyOn(store, 'set')
+      const setSpy = jest.spyOn(store, 'set')
       const sync = new IdentityStateSync(contract, store)
       const result = await sync.reconcileByAddress('0xerr')
       expect(result).toEqual({ address: '0xerr', updated: false, reason: 'error' })
@@ -146,7 +146,7 @@ describe('IdentityStateSync', () => {
         set: async () => {},
         getAllAddresses: async () => ['0xa', '0xb'],
       }
-      const setSpy = vi.spyOn(store, 'set')
+      const setSpy = jest.spyOn(store, 'set')
       const sync = new IdentityStateSync(contract, store)
       const result = await sync.fullResync()
       expect(result.total).toBe(2)

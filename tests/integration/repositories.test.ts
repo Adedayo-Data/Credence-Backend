@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { after, before, beforeEach, describe, it } from "node:test";
+import { afterAll, beforeAll, beforeEach, describe, it } from '@jest/globals';
 
 import {
 	AttestationsRepository,
@@ -40,7 +40,7 @@ describe("DB repositories integration", () => {
 	let slashEventsRepository: SlashEventsRepository;
 	let scoreHistoryRepository: ScoreHistoryRepository;
 
-	before(async () => {
+	beforeAll(async () => {
 		database = await createTestDatabase();
 
 		await createSchema(database.pool);
@@ -56,7 +56,7 @@ describe("DB repositories integration", () => {
 		await resetDatabase(database.pool);
 	});
 
-	after(async () => {
+	afterAll(async () => {
 		await dropSchema(database.pool);
 		await database.close();
 	});

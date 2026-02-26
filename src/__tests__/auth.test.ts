@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express'
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { jest, describe, it, expect, beforeEach, } from '@jest/globals'
 import { requireApiKey, ApiScope, AuthenticatedRequest } from '../middleware/auth.js'
 
 describe('Auth Middleware', () => {
@@ -12,10 +12,10 @@ describe('Auth Middleware', () => {
       headers: {},
     }
     mockResponse = {
-      status: vi.fn().mockReturnThis(),
-      json: vi.fn().mockReturnThis(),
+      status: jest.fn().mockReturnThis() as any,
+      json: jest.fn().mockReturnThis() as any,
     }
-    nextFunction = vi.fn()
+    nextFunction = jest.fn()
   })
 
   describe('requireApiKey', () => {
@@ -120,9 +120,9 @@ describe('Auth Middleware', () => {
         middleware(mockRequest as Request, mockResponse as Response, nextFunction)
 
         const authReq = mockRequest as AuthenticatedRequest
-        expect(authReq.apiKey).toBeDefined()
-        expect(authReq.apiKey?.key).toBe('test-enterprise-key-12345')
-        expect(authReq.apiKey?.scope).toBe(ApiScope.ENTERPRISE)
+        expect(authReq.localApiKey).toBeDefined()
+        expect(authReq.localApiKey?.key).toBe('test-enterprise-key-12345')
+        expect(authReq.localApiKey?.scope).toBe(ApiScope.ENTERPRISE)
       })
 
       it('should attach correct scope for public key', () => {
@@ -131,7 +131,7 @@ describe('Auth Middleware', () => {
         middleware(mockRequest as Request, mockResponse as Response, nextFunction)
 
         const authReq = mockRequest as AuthenticatedRequest
-        expect(authReq.apiKey?.scope).toBe(ApiScope.PUBLIC)
+        expect(authReq.localApiKey?.scope).toBe(ApiScope.PUBLIC)
       })
     })
 

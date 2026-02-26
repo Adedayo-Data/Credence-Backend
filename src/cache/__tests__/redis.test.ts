@@ -1,23 +1,23 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { jest, describe, it, expect, beforeEach, afterEach, } from '@jest/globals'
 
 // Mock createClient from redis
-vi.mock('redis', () => ({
-  createClient: vi.fn(() => ({
+jest.mock('redis', () => ({
+  createClient: jest.fn(() => ({
     isOpen: false,
-    connect: vi.fn().mockResolvedValue(undefined),
-    ping: vi.fn().mockResolvedValue('PONG'),
-    get: vi.fn().mockResolvedValue(null),
-    set: vi.fn().mockResolvedValue('OK'),
-    setEx: vi.fn().mockResolvedValue('OK'),
-    del: vi.fn().mockResolvedValue(0),
-    keys: vi.fn().mockResolvedValue([]),
-    exists: vi.fn().mockResolvedValue(0),
-    expire: vi.fn().mockResolvedValue(0),
-    ttl: vi.fn().mockResolvedValue(-2),
-    quit: vi.fn().mockResolvedValue('OK'),
-    disconnect: vi.fn().mockResolvedValue(undefined),
-    on: vi.fn(),
-  })),
+    connect: jest.fn().mockResolvedValue(undefined as any),
+    ping: jest.fn().mockResolvedValue('PONG' as any),
+    get: jest.fn().mockResolvedValue(null as any),
+    set: jest.fn().mockResolvedValue('OK' as any),
+    setEx: jest.fn().mockResolvedValue('OK' as any),
+    del: jest.fn().mockResolvedValue(0 as any),
+    keys: jest.fn().mockResolvedValue([] as any),
+    exists: jest.fn().mockResolvedValue(0 as any),
+    expire: jest.fn().mockResolvedValue(0 as any),
+    ttl: jest.fn().mockResolvedValue(-2 as any),
+    quit: jest.fn().mockResolvedValue('OK' as any),
+    disconnect: jest.fn().mockResolvedValue(undefined as any),
+    on: jest.fn(),
+  }) as any),
 }))
 
 // Import after mocking
@@ -25,15 +25,15 @@ import { RedisConnection, CacheService } from '../redis.js'
 import { createClient } from 'redis'
 
 // Get the mocked createClient function
-const mockCreateClient = vi.mocked(createClient)
+const mockCreateClient = jest.mocked(createClient)
 
 describe('RedisConnection', () => {
   let redisConnection: RedisConnection
 
   beforeEach(() => {
-    vi.clearAllMocks()
-    // Reset singleton instance
-    ;(RedisConnection as any).instance = undefined
+    jest.clearAllMocks()
+      // Reset singleton instance
+      ; (RedisConnection as any).instance = undefined
     redisConnection = RedisConnection.getInstance()
   })
 
@@ -51,7 +51,7 @@ describe('RedisConnection', () => {
 
   describe('connect', () => {
     it('connects when not connected', async () => {
-      const mockClient = mockCreateClient.mock.results[0].value
+      const mockClient = mockCreateClient.mock.results[0].value as any
       mockClient.isOpen = false
       mockClient.connect.mockResolvedValue(undefined)
 
@@ -61,7 +61,7 @@ describe('RedisConnection', () => {
     })
 
     it('does not connect when already connected', async () => {
-      const mockClient = mockCreateClient.mock.results[0].value
+      const mockClient = mockCreateClient.mock.results[0].value as any
       mockClient.isOpen = true
 
       await redisConnection.connect()
@@ -70,7 +70,7 @@ describe('RedisConnection', () => {
     })
 
     it('handles connection errors gracefully', async () => {
-      const mockClient = mockCreateClient.mock.results[0].value
+      const mockClient = mockCreateClient.mock.results[0].value as any
       mockClient.isOpen = false
       mockClient.connect.mockRejectedValue(new Error('Connection failed'))
 
@@ -80,7 +80,7 @@ describe('RedisConnection', () => {
 
   describe('isHealthy', () => {
     it('returns true when Redis is healthy', async () => {
-      const mockClient = mockCreateClient.mock.results[0].value
+      const mockClient = mockCreateClient.mock.results[0].value as any
       mockClient.isOpen = true
       mockClient.ping.mockResolvedValue('PONG')
 
@@ -91,7 +91,7 @@ describe('RedisConnection', () => {
     })
 
     it('returns false when Redis is not connected', async () => {
-      const mockClient = mockCreateClient.mock.results[0].value
+      const mockClient = mockCreateClient.mock.results[0].value as any
       mockClient.isOpen = false
 
       const healthy = await redisConnection.isHealthy()
@@ -101,7 +101,7 @@ describe('RedisConnection', () => {
     })
 
     it('returns false when ping fails', async () => {
-      const mockClient = mockCreateClient.mock.results[0].value
+      const mockClient = mockCreateClient.mock.results[0].value as any
       mockClient.isOpen = true
       mockClient.ping.mockRejectedValue(new Error('Ping failed'))
 
@@ -113,7 +113,7 @@ describe('RedisConnection', () => {
 
   describe('disconnect', () => {
     it('disconnects when connected', async () => {
-      const mockClient = mockCreateClient.mock.results[0].value
+      const mockClient = mockCreateClient.mock.results[0].value as any
       mockClient.isOpen = true
       mockClient.quit.mockResolvedValue('OK')
 
@@ -123,7 +123,7 @@ describe('RedisConnection', () => {
     })
 
     it('does not disconnect when not connected', async () => {
-      const mockClient = mockCreateClient.mock.results[0].value
+      const mockClient = mockCreateClient.mock.results[0].value as any
       mockClient.isOpen = false
 
       await redisConnection.disconnect()
@@ -138,27 +138,27 @@ describe('CacheService', () => {
   let mockRedisConnection: any
 
   beforeEach(() => {
-    vi.clearAllMocks()
-    
+    jest.clearAllMocks()
+
     mockRedisConnection = {
-      connect: vi.fn().mockResolvedValue(undefined),
-      getClient: vi.fn().mockReturnValue({
+      connect: jest.fn().mockResolvedValue(undefined as any),
+      getClient: jest.fn().mockReturnValue({
         isOpen: false,
-        connect: vi.fn().mockResolvedValue(undefined),
-        ping: vi.fn().mockResolvedValue('PONG'),
-        get: vi.fn().mockResolvedValue(null),
-        set: vi.fn().mockResolvedValue('OK'),
-        setEx: vi.fn().mockResolvedValue('OK'),
-        del: vi.fn().mockResolvedValue(0),
-        keys: vi.fn().mockResolvedValue([]),
-        exists: vi.fn().mockResolvedValue(0),
-        expire: vi.fn().mockResolvedValue(0),
-        ttl: vi.fn().mockResolvedValue(-2),
-        quit: vi.fn().mockResolvedValue('OK'),
-        disconnect: vi.fn().mockResolvedValue(undefined),
-        on: vi.fn(),
-      }),
-      isHealthy: vi.fn().mockResolvedValue(true),
+        connect: jest.fn().mockResolvedValue(undefined as any),
+        ping: jest.fn().mockResolvedValue('PONG' as any),
+        get: jest.fn().mockResolvedValue(null as any),
+        set: jest.fn().mockResolvedValue('OK' as any),
+        setEx: jest.fn().mockResolvedValue('OK' as any),
+        del: jest.fn().mockResolvedValue(0 as any),
+        keys: jest.fn().mockResolvedValue([] as any),
+        exists: jest.fn().mockResolvedValue(0 as any),
+        expire: jest.fn().mockResolvedValue(0 as any),
+        ttl: jest.fn().mockResolvedValue(-2 as any),
+        quit: jest.fn().mockResolvedValue('OK' as any),
+        disconnect: jest.fn().mockResolvedValue(undefined as any),
+        on: jest.fn(),
+      } as any),
+      isHealthy: jest.fn().mockResolvedValue(true as any),
     }
 
     cacheService = new CacheService(mockRedisConnection)
@@ -233,8 +233,8 @@ describe('CacheService', () => {
 
       expect(result).toBe(true)
       expect(mockClient.setEx).toHaveBeenCalledWith(
-        'trust:score:0x123', 
-        300, 
+        'trust:score:0x123',
+        300,
         JSON.stringify(testData)
       )
     })

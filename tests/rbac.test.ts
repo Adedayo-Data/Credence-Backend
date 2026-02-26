@@ -1,3 +1,4 @@
+import { jest } from "@jest/globals";
 /**
  * RBAC middleware + RoleService tests.
  * No database required – all tests run in memory.

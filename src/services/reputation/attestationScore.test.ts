@@ -3,7 +3,7 @@
  * Tests cover: normal cases, edge cases, invalid attestations, weight combinations
  */
 
-import { describe, it, expect } from 'vitest'
+import {  describe, it, expect  } from '@jest/globals'
 import {
   calculateAttestationScore,
   getMaxAttestationWeight,

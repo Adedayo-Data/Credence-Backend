@@ -1,19 +1,19 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { jest, describe, it, expect, beforeEach } from '@jest/globals'
 import { ScoreSnapshotJob, createScoreSnapshotJob } from './scoreSnapshot.js'
 import type { IdentityDataSource, ScoreSnapshotStore, IdentityData, ScoreSnapshot } from './types.js'
 
 describe('ScoreSnapshotJob', () => {
-  let mockDataSource: IdentityDataSource
-  let mockStore: ScoreSnapshotStore
-  let mockScoreComputer: (data: IdentityData) => number
+  let mockDataSource: any
+  let mockStore: any
+  let mockScoreComputer: any
   let savedSnapshots: ScoreSnapshot[]
 
   beforeEach(() => {
     savedSnapshots = []
 
     mockDataSource = {
-      getActiveAddresses: vi.fn().mockResolvedValue(['0xabc', '0xdef', '0xghi']),
-      getIdentityData: vi.fn().mockImplementation(async (address: string) => ({
+      getActiveAddresses: jest.fn().mockResolvedValue(['0xabc', '0xdef', '0xghi']),
+      getIdentityData: jest.fn().mockImplementation(async (address: any) => ({
         address,
         bondedAmount: '1000',
         active: true,
@@ -22,13 +22,13 @@ describe('ScoreSnapshotJob', () => {
     }
 
     mockStore = {
-      save: vi.fn().mockResolvedValue(undefined),
-      saveBatch: vi.fn().mockImplementation(async (snapshots: ScoreSnapshot[]) => {
+      save: jest.fn().mockResolvedValue(undefined),
+      saveBatch: jest.fn().mockImplementation(async (snapshots: any) => {
         savedSnapshots.push(...snapshots)
       }),
     }
 
-    mockScoreComputer = vi.fn().mockReturnValue(75)
+    mockScoreComputer = jest.fn().mockReturnValue(75)
   })
 
   it('processes all active identities', async () => {
@@ -71,7 +71,7 @@ describe('ScoreSnapshotJob', () => {
   })
 
   it('processes identities in batches', async () => {
-    mockDataSource.getActiveAddresses = vi.fn().mockResolvedValue([
+    mockDataSource.getActiveAddresses = jest.fn().mockResolvedValue([
       '0xa1', '0xa2', '0xa3', '0xa4', '0xa5',
     ])
 
@@ -85,7 +85,7 @@ describe('ScoreSnapshotJob', () => {
   })
 
   it('handles missing identity data', async () => {
-    mockDataSource.getIdentityData = vi.fn()
+    mockDataSource.getIdentityData = jest.fn()
       .mockResolvedValueOnce({ address: '0xabc', bondedAmount: '1000', active: true, attestationCount: 10 })
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({ address: '0xghi', bondedAmount: '500', active: true, attestationCount: 5 })
@@ -99,7 +99,7 @@ describe('ScoreSnapshotJob', () => {
   })
 
   it('continues on error when continueOnError is true', async () => {
-    mockDataSource.getIdentityData = vi.fn()
+    mockDataSource.getIdentityData = jest.fn()
       .mockResolvedValueOnce({ address: '0xabc', bondedAmount: '1000', active: true, attestationCount: 10 })
       .mockRejectedValueOnce(new Error('Network error'))
       .mockResolvedValueOnce({ address: '0xghi', bondedAmount: '500', active: true, attestationCount: 5 })
@@ -115,7 +115,7 @@ describe('ScoreSnapshotJob', () => {
   })
 
   it('stops on error when continueOnError is false', async () => {
-    mockDataSource.getIdentityData = vi.fn()
+    mockDataSource.getIdentityData = jest.fn()
       .mockResolvedValueOnce({ address: '0xabc', bondedAmount: '1000', active: true, attestationCount: 10 })
       .mockRejectedValueOnce(new Error('Network error'))
 
@@ -127,7 +127,7 @@ describe('ScoreSnapshotJob', () => {
   })
 
   it('handles batch save errors', async () => {
-    mockStore.saveBatch = vi.fn().mockRejectedValue(new Error('Database error'))
+    mockStore.saveBatch = jest.fn().mockRejectedValue(new Error('Database error'))
 
     const job = new ScoreSnapshotJob(mockDataSource, mockStore, mockScoreComputer, {
       continueOnError: true,
@@ -168,7 +168,7 @@ describe('ScoreSnapshotJob', () => {
   })
 
   it('handles empty identity list', async () => {
-    mockDataSource.getActiveAddresses = vi.fn().mockResolvedValue([])
+    mockDataSource.getActiveAddresses = jest.fn().mockResolvedValue([])
 
     const job = new ScoreSnapshotJob(mockDataSource, mockStore, mockScoreComputer)
     const result = await job.run()
@@ -195,7 +195,7 @@ describe('ScoreSnapshotJob', () => {
 
   it('processes large dataset efficiently', async () => {
     const addresses = Array.from({ length: 250 }, (_, i) => `0x${i}`)
-    mockDataSource.getActiveAddresses = vi.fn().mockResolvedValue(addresses)
+    mockDataSource.getActiveAddresses = jest.fn().mockResolvedValue(addresses)
 
     const job = new ScoreSnapshotJob(mockDataSource, mockStore, mockScoreComputer, {
       batchSize: 100,
