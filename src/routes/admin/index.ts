@@ -2,7 +2,9 @@ import { Router, Request, Response } from 'express'
 import { AuthenticatedRequest, requireUserAuth, requireAdminRole, UserRole } from '../../middleware/auth.js'
 import { AdminService } from '../../services/admin/index.js'
 import { auditLogService } from '../../services/audit/index.js'
+import { impersonationService } from '../../services/impersonation/index.js'
 import type { AssignRoleRequest, RevokeApiKeyRequest } from '../../services/admin/types.js'
+import type { IssueImpersonationTokenRequest } from '../../services/impersonation/types.js'
 
 /**
  * Create the admin router with role and user management endpoints
@@ -245,6 +247,82 @@ export function createAdminRouter(): Router {
         error: 'InternalError',
         message,
       })
+    }
+  })
+
+  /**
+   * POST /api/admin/impersonate
+   *
+   * Issue a short-lived impersonation token for a target user.
+   *
+   * @requires Admin role
+   *
+   * @body {string} targetUserId - ID of the user to impersonate
+   * @body {string} reason       - Mandatory justification (logged to audit trail)
+   * @body {number} [ttlSeconds] - Token lifetime in seconds (default 900, max 3600)
+   *
+   * @returns {object} tokenId, targetUserId, targetUserEmail, expiresAt, ttlSeconds
+   */
+  router.post('/impersonate', requireUserAuth, requireAdminRole, (req: Request, res: Response) => {
+    try {
+      const authReq = req as AuthenticatedRequest
+      const admin = authReq.user!
+
+      // Prevent nested impersonation: if the caller is already acting under an
+      // impersonation token, block the request.
+      if ((req as any).impersonationTokenId) {
+        res.status(403).json({
+          error: 'Forbidden',
+          message: 'Nested impersonation is not allowed',
+        })
+        return
+      }
+
+      const body = req.body as IssueImpersonationTokenRequest
+
+      if (!body.targetUserId || !body.reason) {
+        res.status(400).json({
+          error: 'InvalidRequest',
+          message: 'Missing required fields: targetUserId, reason',
+        })
+        return
+      }
+
+      const result = impersonationService.issueToken(
+        admin.id,
+        admin.email,
+        body,
+        req.ip,
+      )
+
+      res.status(201).json({ success: true, data: result })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      const status = message.includes('not found') ? 404 : 400
+      res.status(status).json({ error: 'BadRequest', message })
+    }
+  })
+
+  /**
+   * POST /api/admin/impersonate/:tokenId/revoke
+   *
+   * Revoke an active impersonation token before it expires.
+   *
+   * @requires Admin role
+   */
+  router.post('/impersonate/:tokenId/revoke', requireUserAuth, requireAdminRole, (req: Request, res: Response) => {
+    try {
+      const authReq = req as AuthenticatedRequest
+      const admin = authReq.user!
+      const { tokenId } = req.params
+
+      impersonationService.revokeToken(admin.id, admin.email, tokenId, req.ip)
+
+      res.status(200).json({ success: true, message: `Token ${tokenId} revoked` })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      const status = message.includes('not found') ? 404 : 400
+      res.status(status).json({ error: 'BadRequest', message })
     }
   })
 
