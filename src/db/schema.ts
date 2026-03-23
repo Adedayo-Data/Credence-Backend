@@ -52,15 +52,34 @@ const CREATE_TABLE_STATEMENTS = [
     computed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )
   `,
+  `
+  CREATE TABLE IF NOT EXISTS audit_logs (
+    id TEXT PRIMARY KEY,
+    occurred_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    actor_id TEXT NOT NULL,
+    actor_email TEXT NOT NULL,
+    action TEXT NOT NULL,
+    resource_type TEXT NOT NULL,
+    resource_id TEXT NOT NULL,
+    details_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+    status TEXT NOT NULL CHECK (status IN ('success', 'failure')),
+    ip_address TEXT,
+    error_message TEXT
+  )
+  `,
   `CREATE INDEX IF NOT EXISTS bonds_identity_address_idx ON bonds (identity_address)`,
   `CREATE INDEX IF NOT EXISTS attestations_subject_address_idx ON attestations (subject_address)`,
   `CREATE INDEX IF NOT EXISTS attestations_bond_id_idx ON attestations (bond_id)`,
   `CREATE INDEX IF NOT EXISTS slash_events_bond_id_idx ON slash_events (bond_id)`,
   `CREATE INDEX IF NOT EXISTS score_history_identity_address_idx ON score_history (identity_address)`,
+  `CREATE INDEX IF NOT EXISTS audit_logs_actor_time_idx ON audit_logs (actor_id, occurred_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS audit_logs_resource_time_idx ON audit_logs (resource_id, occurred_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS audit_logs_time_idx ON audit_logs (occurred_at DESC)`,
 ] as const
 
 const DROP_TABLE_STATEMENTS = [
   'DROP TABLE IF EXISTS score_history',
+  'DROP TABLE IF EXISTS audit_logs',
   'DROP TABLE IF EXISTS slash_events',
   'DROP TABLE IF EXISTS attestations',
   'DROP TABLE IF EXISTS bonds',
@@ -75,7 +94,7 @@ export async function createSchema(db: Queryable): Promise<void> {
 
 export async function resetDatabase(db: Queryable): Promise<void> {
   await db.query(
-    'TRUNCATE TABLE score_history, slash_events, attestations, bonds, identities RESTART IDENTITY CASCADE'
+    'TRUNCATE TABLE audit_logs, score_history, slash_events, attestations, bonds, identities RESTART IDENTITY CASCADE'
   )
 }
 

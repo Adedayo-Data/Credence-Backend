@@ -1,4 +1,5 @@
-import type { ScoreSnapshotJob, SnapshotJobResult } from './scoreSnapshot.js'
+import type { ScoreSnapshotJob } from './scoreSnapshot.js'
+import type { SnapshotJobResult } from './types.js'
 
 /**
  * Scheduler options.

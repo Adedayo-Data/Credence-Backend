@@ -11,9 +11,9 @@ describe('Admin API', () => {
   const INVALID_TOKEN = 'Bearer invalid-token'
   const NO_TOKEN = 'NoBearer invalid-token'
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Clear audit logs before each test
-    auditLogService.clearLogs()
+    await auditLogService.clearLogs()
     
     // Reset mock user data to avoid state contamination between tests
     MOCK_USERS['verifier-user-1'].apiKey = 'verifier-key-67890'
@@ -210,7 +210,7 @@ describe('Admin API', () => {
         .get('/api/admin/users')
         .set('Authorization', ADMIN_TOKEN)
 
-      const logs = auditLogService.getAllLogs()
+      const logs = await auditLogService.getAllLogs()
       const listLog = logs.find((log) => log.action === AuditAction.LIST_USERS)
       expect(listLog).toBeDefined()
       expect(listLog?.status).toBe('success')
@@ -309,7 +309,7 @@ describe('Admin API', () => {
           role: UserRole.ADMIN,
         })
 
-      const logs = auditLogService.getAllLogs()
+      const logs = await auditLogService.getAllLogs()
       const assignLog = logs.find((log) => log.action === AuditAction.ASSIGN_ROLE)
       expect(assignLog).toBeDefined()
       expect(assignLog?.status).toBe('success')
@@ -325,7 +325,7 @@ describe('Admin API', () => {
           role: UserRole.VERIFIER,
         })
 
-      const logs = auditLogService.getAllLogs()
+      const logs = await auditLogService.getAllLogs()
       const failedLog = logs.find(
         (log) => log.action === AuditAction.ASSIGN_ROLE && log.status === 'failure'
       )
@@ -436,7 +436,7 @@ describe('Admin API', () => {
           apiKey: oldKey,
         })
 
-      const logs = auditLogService.getAllLogs()
+      const logs = await auditLogService.getAllLogs()
       const revokeLog = logs.find((log) => log.action === AuditAction.REVOKE_API_KEY)
       expect(revokeLog).toBeDefined()
       expect(revokeLog?.status).toBe('success')
@@ -545,8 +545,8 @@ describe('Admin API', () => {
   })
 
   describe('Audit Logging', () => {
-    beforeEach(() => {
-      auditLogService.clearLogs()
+    beforeEach(async () => {
+      await auditLogService.clearLogs()
     })
 
     it('should contain admin info in audit logs', async () => {
@@ -558,7 +558,7 @@ describe('Admin API', () => {
           role: UserRole.ADMIN,
         })
 
-      const logs = auditLogService.getAllLogs()
+      const logs = await auditLogService.getAllLogs()
       const log = logs[0]
       expect(log).toHaveProperty('adminId', 'admin-user-1')
       expect(log).toHaveProperty('adminEmail', 'admin@credence.org')
@@ -574,7 +574,7 @@ describe('Admin API', () => {
           role: UserRole.ADMIN,
         })
 
-      const logs = auditLogService.getAllLogs()
+      const logs = await auditLogService.getAllLogs()
       const log = logs[0]
       expect(log).toHaveProperty('targetUserId', 'verifier-user-1')
       expect(log).toHaveProperty('targetUserEmail', 'verifier@credence.org')
@@ -589,7 +589,7 @@ describe('Admin API', () => {
           role: UserRole.ADMIN,
         })
 
-      const logs = auditLogService.getAllLogs()
+      const logs = await auditLogService.getAllLogs()
       const log = logs[0]
       expect(log).toHaveProperty('details')
       expect(log.details).toHaveProperty('oldRole')
@@ -598,8 +598,8 @@ describe('Admin API', () => {
   })
 
   describe('End-to-End Scenarios', () => {
-    beforeEach(() => {
-      auditLogService.clearLogs()
+    beforeEach(async () => {
+      await auditLogService.clearLogs()
     })
 
     it('should complete full admin workflow: list, assign, revoke', async () => {
