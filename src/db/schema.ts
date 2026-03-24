@@ -52,14 +52,36 @@ const CREATE_TABLE_STATEMENTS = [
     computed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )
   `,
+  `
+  CREATE TABLE IF NOT EXISTS notification_send_attempts (
+    id TEXT PRIMARY KEY,
+    notification_id TEXT NOT NULL,
+    idempotency_key TEXT NOT NULL UNIQUE,
+    attempt_group INTEGER NOT NULL DEFAULT 1,
+    attempt_number INTEGER NOT NULL DEFAULT 1,
+    provider TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('pending', 'sent', 'failed', 'deduped')),
+    provider_response_id TEXT,
+    error_message TEXT,
+    attempted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    sent_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT notification_send_attempts_key_unique UNIQUE (idempotency_key)
+  )
+  `,
   `CREATE INDEX IF NOT EXISTS bonds_identity_address_idx ON bonds (identity_address)`,
   `CREATE INDEX IF NOT EXISTS attestations_subject_address_idx ON attestations (subject_address)`,
   `CREATE INDEX IF NOT EXISTS attestations_bond_id_idx ON attestations (bond_id)`,
   `CREATE INDEX IF NOT EXISTS slash_events_bond_id_idx ON slash_events (bond_id)`,
   `CREATE INDEX IF NOT EXISTS score_history_identity_address_idx ON score_history (identity_address)`,
+  `CREATE INDEX IF NOT EXISTS notification_send_attempts_notification_id_idx ON notification_send_attempts (notification_id)`,
+  `CREATE INDEX IF NOT EXISTS notification_send_attempts_idempotency_key_idx ON notification_send_attempts (idempotency_key)`,
+  `CREATE INDEX IF NOT EXISTS notification_send_attempts_status_idx ON notification_send_attempts (status)`,
 ] as const
 
 const DROP_TABLE_STATEMENTS = [
+  'DROP TABLE IF EXISTS notification_send_attempts',
   'DROP TABLE IF EXISTS score_history',
   'DROP TABLE IF EXISTS slash_events',
   'DROP TABLE IF EXISTS attestations',
@@ -75,7 +97,7 @@ export async function createSchema(db: Queryable): Promise<void> {
 
 export async function resetDatabase(db: Queryable): Promise<void> {
   await db.query(
-    'TRUNCATE TABLE score_history, slash_events, attestations, bonds, identities RESTART IDENTITY CASCADE'
+    'TRUNCATE TABLE notification_send_attempts, score_history, slash_events, attestations, bonds, identities RESTART IDENTITY CASCADE'
   )
 }
 
