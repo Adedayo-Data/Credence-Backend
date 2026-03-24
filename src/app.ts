@@ -3,6 +3,7 @@ import { createHealthRouter } from './routes/health.js'
 import { createDefaultProbes } from './services/health/probes.js'
 import trustRouter from './routes/trust.js'
 import bulkRouter from './routes/bulk.js'
+import reportRouter from './routes/report.js'
 import { validate } from './middleware/validate.js'
 import {
   bondPathParamsSchema,
@@ -65,5 +66,8 @@ app.post(
 
 // Bulk verification (enterprise)
 app.use('/api/bulk', bulkRouter)
+
+// Report generation (enterprise)
+app.use('/api/reports', reportRouter)
 
 export default app
