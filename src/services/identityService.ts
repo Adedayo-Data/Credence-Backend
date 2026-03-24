@@ -1,3 +1,5 @@
+import { isValidStellarAddress } from '../lib/stellarAddress.js'
+
 /**
  * Identity verification result for a single address
  */
@@ -36,7 +38,7 @@ export class IdentityService {
    */
   async verifyIdentity(address: string): Promise<IdentityVerification> {
     // Validate address format (basic Stellar address validation)
-    if (!this.isValidStellarAddress(address)) {
+    if (!isValidStellarAddress(address)) {
       throw new Error('Invalid Stellar address format')
     }
 
@@ -95,19 +97,6 @@ export class IdentityService {
     )
 
     return { results, errors }
-  }
-
-  /**
-   * Validate Stellar address format
-   * Basic validation - in production, use stellar-sdk
-   * 
-   * @param address - Address to validate
-   * @returns True if valid format
-   */
-  private isValidStellarAddress(address: string): boolean {
-    // Stellar addresses are 56 characters, start with G, and are base32
-    const stellarAddressRegex = /^G[A-Z2-7]{55}$/
-    return stellarAddressRegex.test(address)
   }
 
   /**
