@@ -1,5 +1,6 @@
 import type {
   IdentityDataSource,
+  IdentityData,
   ScoreSnapshotStore,
   ScoreComputer,
   SnapshotJobResult,
@@ -64,6 +65,7 @@ export class ScoreSnapshotJob {
     let processed = 0
     let saved = 0
     let errors = 0
+    let aggregationDuration = 0
 
     try {
       const addresses = await this.dataSource.getActiveAddresses()
@@ -78,10 +80,13 @@ export class ScoreSnapshotJob {
         this.logger(`Processing batch ${batchNum}/${totalBatches} (${batch.length} identities)`)
 
         const snapshots: ScoreSnapshot[] = []
+        const aggregationStartedAt = Date.now()
+        const batchData = await this.loadBatchData(batch)
+        aggregationDuration += Date.now() - aggregationStartedAt
 
         for (const address of batch) {
           try {
-            const data = await this.dataSource.getIdentityData(address)
+            const data = batchData.get(address) ?? null
             
             if (!data) {
               this.logger(`No data found for ${address}`)
@@ -142,8 +147,27 @@ export class ScoreSnapshotJob {
       saved,
       errors,
       duration,
+      aggregationDuration,
       startTime,
     }
+  }
+
+  private async loadBatchData(batch: string[]): Promise<Map<string, IdentityData>> {
+    if (typeof this.dataSource.getIdentityDataBatch === 'function') {
+      const rows = await this.dataSource.getIdentityDataBatch(batch)
+      return new Map(rows.map((row) => [row.address, row]))
+    }
+
+    const data = new Map<string, IdentityData>()
+
+    for (const address of batch) {
+      const row = await this.dataSource.getIdentityData(address)
+      if (row) {
+        data.set(address, row)
+      }
+    }
+
+    return data
   }
 }
 
