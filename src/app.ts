@@ -1,4 +1,5 @@
 import express from 'express'
+import { createJwksRouter } from './routes/jwks.js'
 import { createHealthRouter } from './routes/health.js'
 import { createDefaultProbes } from './services/health/probes.js'
 import trustRouter from './routes/trust.js'
@@ -33,6 +34,10 @@ app.use(metricsMiddleware)
 app.use(compressionMetricsMiddleware)
 app.use(compressionMiddleware)
 app.use(express.json())
+
+// JWT public key set — unauthenticated, per RFC 8414 / OIDC Discovery conventions
+app.use('/.well-known/jwks.json', createJwksRouter())
+
 // Health – full readiness check with per-dependency status
 const healthProbes = createDefaultProbes()
 app.use('/api/health', createHealthRouter(healthProbes))

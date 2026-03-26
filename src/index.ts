@@ -4,12 +4,17 @@ import { loadConfig } from './config/index.js'
 import { pool } from './db/pool.js'
 import { AnalyticsService } from './services/analytics/service.js'
 import { AnalyticsRefreshWorker, getAnalyticsRefreshIntervalMs } from './jobs/analyticsRefreshWorker.js'
+import { keyManager } from './services/keyManager/index.js'
 
 export { app }
 export default app
 
-try {
+;(async () => {
   const config = loadConfig()
+
+  // Initialize JWT signing keys before accepting traffic so the JWKS endpoint
+  // is ready immediately and the first token can be signed without delay.
+  await keyManager.initialize()
 
   app.listen(config.port, () => {
     console.log(`Credence API listening on port ${config.port}`)
@@ -44,7 +49,7 @@ try {
       void tick()
     }, intervalMs)
   }
-} catch (error) {
-  console.error("Failed to start Credence API:", error)
+})().catch((error) => {
+  console.error('Failed to start Credence API:', error)
   process.exit(1)
-}
+})
