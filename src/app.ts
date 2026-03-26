@@ -1,4 +1,4 @@
-import express from 'express'
+import express, { NextFunction, Request, Response } from 'express'
 import { createHealthRouter } from './routes/health.js'
 import { createDefaultProbes } from './services/health/probes.js'
 import trustRouter from './routes/trust.js'
@@ -8,9 +8,9 @@ import { createAnalyticsRouter } from './routes/analytics.js'
 import { AnalyticsService } from './services/analytics/service.js'
 import { pool } from './db/pool.js'
 import { validate } from './middleware/validate.js'
+import { requestIdMiddleware } from './middleware/requestId.js'
 import {
   buildPaginationMeta,
-  PaginationValidationError,
   parsePaginationParams,
 } from './lib/pagination.js'
 import {
@@ -20,8 +20,12 @@ import {
 } from './schemas/index.js'
 import { compressionMiddleware, compressionMetricsMiddleware } from './middleware/compression.js'
 import { metricsMiddleware, register } from './middleware/metrics.js'
+import { errorHandler } from './middleware/errorHandler.js'
 
 const app = express()
+
+// Request context and correlation IDs
+app.use(requestIdMiddleware)
 
 // Metrics endpoint for Prometheus
 app.get('/metrics', async (_req, res) => {
@@ -60,7 +64,7 @@ app.get(
 app.get(
   '/api/attestations/:address',
   validate({ params: attestationsPathParamsSchema }),
-  (req, res) => {
+  (req, res, next) => {
     const { address } = req.validated!.params! as { address: string }
     try {
       const { page, limit, offset } = parsePaginationParams(req.query as Record<string, unknown>)
@@ -71,15 +75,7 @@ app.get(
         ...buildPaginationMeta(0, page, limit),
       })
     } catch (error) {
-      if (error instanceof PaginationValidationError) {
-        res.status(400).json({
-          error: 'Validation failed',
-          details: error.details,
-        })
-        return
-      }
-
-      throw error
+      next(error)
     }
   },
 )
@@ -109,5 +105,8 @@ const analyticsService = process.env.DATABASE_URL
   ? new AnalyticsService(pool, analyticsThresholdSeconds)
   : undefined
 app.use('/api/analytics', createAnalyticsRouter(analyticsService))
+
+// Final error handler
+app.use(errorHandler)
 
 export default app
