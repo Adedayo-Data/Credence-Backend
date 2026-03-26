@@ -1,4 +1,4 @@
-import { generateKeyPair, exportJWK, SignJWT, jwtVerify, decodeProtectedHeader } from 'jose'
+import { generateKeyPair, exportJWK, SignJWT, jwtVerify, decodeProtectedHeader, importPKCS8 } from 'jose'
 import { randomUUID } from 'crypto'
 import type { KeyLike } from 'jose'
 import type { ManagedKey, JwksResponse, KeyManagerConfig, KeyAuditEvent } from './types.js'
@@ -35,12 +35,15 @@ export class KeyManager {
   // ── Initialization ──────────────────────────────────────────────────────
 
   /**
-   * Generate the initial active key pair.
+   * Generate (or import) the initial active key pair.
    * Idempotent — calling more than once is a no-op.
+   * When `config.privateKeyPem` is set the PEM is imported instead of generating a new key.
    */
   async initialize(): Promise<void> {
     if (this.activeKid !== null) return
-    const key = await this._generateKey()
+    const key = this.config.privateKeyPem
+      ? await this._importKey(this.config.privateKeyPem, this.config.initialKid)
+      : await this._generateKey()
     this._emitAudit({ timestamp: new Date().toISOString(), event: 'KEY_CREATED', kid: key.kid })
   }
 
@@ -260,6 +263,25 @@ export class KeyManager {
     return managed
   }
 
+  private async _importKey(pem: string, kid?: string): Promise<ManagedKey> {
+    const { createPublicKey } = await import('crypto')
+    const privateKey = await importPKCS8(pem, ALG)
+    // Derive the public key from the imported private key via Node's crypto module
+    const publicKey = createPublicKey(pem)
+    const resolvedKid = kid ?? randomUUID()
+    const managed: ManagedKey = {
+      kid: resolvedKid,
+      state: 'active',
+      privateKey,
+      publicKey,
+      createdAt: new Date(),
+      retiredAt: null,
+    }
+    this.keys.set(resolvedKid, managed)
+    this.activeKid = resolvedKid
+    return managed
+  }
+
   private _emitAudit(event: KeyAuditEvent): void {
     this.auditLog.push(event)
     console.log(JSON.stringify(event))
@@ -274,4 +296,6 @@ export class KeyManager {
 export const keyManager = new KeyManager({
   gracePeriodSeconds: Number(process.env.KEY_GRACE_PERIOD_SECONDS ?? '3600'),
   clockSkewSeconds: Number(process.env.KEY_CLOCK_SKEW_SECONDS ?? '300'),
+  privateKeyPem: process.env.KEY_PRIVATE_PEM,
+  initialKid: process.env.KEY_INITIAL_KID,
 })

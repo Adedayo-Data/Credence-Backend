@@ -16,6 +16,36 @@ export default app
   // is ready immediately and the first token can be signed without delay.
   await keyManager.initialize()
 
+  // Schedule automatic key rotation per KEY_ROTATION_INTERVAL_SECONDS
+  const rotationIntervalMs = config.jwt.keyRotationIntervalSeconds * 1000
+  let rotating = false
+  setInterval(() => {
+    if (rotating) {
+      console.log('Key rotation already in progress, skipping interval')
+      return
+    }
+    rotating = true
+    keyManager
+      .rotate()
+      .then(({ newKid, retiredKid }) => {
+        console.log(
+          JSON.stringify({
+            event: 'KEY_ROTATION_SCHEDULED',
+            newKid,
+            retiredKid,
+            timestamp: new Date().toISOString(),
+          }),
+        )
+      })
+      .catch((error) => {
+        const message = error instanceof Error ? error.message : 'Unknown rotation error'
+        console.error(`Scheduled key rotation failed: ${message}`)
+      })
+      .finally(() => {
+        rotating = false
+      })
+  }, rotationIntervalMs)
+
   app.listen(config.port, () => {
     console.log(`Credence API listening on port ${config.port}`)
   })

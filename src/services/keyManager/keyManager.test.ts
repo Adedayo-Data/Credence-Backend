@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest'
 import { decodeProtectedHeader } from 'jose'
 import { KeyManager } from './index.js'
 import { keyManager } from './index.js'
@@ -421,5 +421,99 @@ describe('KeyManager — pruneExpiredKeys()', () => {
     expect(pruned).toEqual(expect.arrayContaining([retiredKid]))
 
     vi.useRealTimers()
+  })
+})
+
+// ── PEM key loading tests ─────────────────────────────────────────────────────
+
+describe('KeyManager — initialize() with privateKeyPem', () => {
+  let testPem: string
+
+  beforeAll(async () => {
+    const { generateKeyPair, exportPKCS8 } = await import('jose')
+    const { privateKey } = await generateKeyPair('PS256', { modulusLength: 2048, extractable: true })
+    testPem = await exportPKCS8(privateKey)
+  })
+
+  it('loads key from PEM instead of generating a new one', async () => {
+    const mgr = new KeyManager({ gracePeriodSeconds: 3600, clockSkewSeconds: 300, privateKeyPem: testPem })
+    await mgr.initialize()
+    const key = mgr.getCurrentKey()
+    expect(key.state).toBe('active')
+    expect(key.privateKey).toBeDefined()
+    expect(key.publicKey).toBeDefined()
+  })
+
+  it('uses initialKid when provided alongside privateKeyPem', async () => {
+    const mgr = new KeyManager({
+      gracePeriodSeconds: 3600,
+      clockSkewSeconds: 300,
+      privateKeyPem: testPem,
+      initialKid: 'my-stable-kid-v1',
+    })
+    await mgr.initialize()
+    expect(mgr.getCurrentKey().kid).toBe('my-stable-kid-v1')
+  })
+
+  it('assigns a random UUID kid when initialKid is not provided', async () => {
+    const mgr = new KeyManager({ gracePeriodSeconds: 3600, clockSkewSeconds: 300, privateKeyPem: testPem })
+    await mgr.initialize()
+    expect(mgr.getCurrentKey().kid).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    )
+  })
+
+  it('can sign and verify tokens after loading from PEM', async () => {
+    const mgr = new KeyManager({ gracePeriodSeconds: 3600, clockSkewSeconds: 300, privateKeyPem: testPem })
+    await mgr.initialize()
+    const token = await mgr.signToken({ sub: 'pem-user' })
+    const payload = await mgr.verifyToken(token)
+    expect(payload.sub).toBe('pem-user')
+  })
+
+  it('does not expose private key material in JWKS after PEM load', async () => {
+    const mgr = new KeyManager({ gracePeriodSeconds: 3600, clockSkewSeconds: 300, privateKeyPem: testPem })
+    await mgr.initialize()
+    const { keys } = await mgr.getPublicJwks()
+    for (const jwk of keys) {
+      expect(jwk).not.toHaveProperty('d')
+      expect(jwk).not.toHaveProperty('p')
+      expect(jwk).not.toHaveProperty('q')
+    }
+  })
+
+  it('emits KEY_CREATED audit event when loading from PEM', async () => {
+    const mgr = new KeyManager({ gracePeriodSeconds: 3600, clockSkewSeconds: 300, privateKeyPem: testPem })
+    await mgr.initialize()
+    const log = mgr.getAuditLog()
+    expect(log).toHaveLength(1)
+    expect(log[0].event).toBe('KEY_CREATED')
+  })
+
+  it('is idempotent — second initialize() call is a no-op even with PEM', async () => {
+    const mgr = new KeyManager({
+      gracePeriodSeconds: 3600,
+      clockSkewSeconds: 300,
+      privateKeyPem: testPem,
+      initialKid: 'stable-kid',
+    })
+    await mgr.initialize()
+    await mgr.initialize()
+    expect(mgr.getAllVerificationKeys()).toHaveLength(1)
+    expect(mgr.getCurrentKey().kid).toBe('stable-kid')
+  })
+
+  it('rotation still works after PEM-loaded key', async () => {
+    const mgr = new KeyManager({
+      gracePeriodSeconds: 3600,
+      clockSkewSeconds: 300,
+      privateKeyPem: testPem,
+      initialKid: 'pem-key',
+    })
+    await mgr.initialize()
+    const { retiredKid, newKid } = await mgr.rotate()
+    expect(retiredKid).toBe('pem-key')
+    expect(newKid).not.toBe('pem-key')
+    expect(mgr.getCurrentKey().state).toBe('active')
   })
 })

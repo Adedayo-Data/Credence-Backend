@@ -29,6 +29,17 @@ export interface KeyManagerConfig {
    * Default: 300 (5 minutes).
    */
   clockSkewSeconds: number
+  /**
+   * Optional PKCS8 PEM-encoded RSA private key to import as the initial signing key.
+   * When set, `initialize()` imports this key instead of generating a fresh one,
+   * ensuring tokens remain valid across restarts.
+   */
+  privateKeyPem?: string
+  /**
+   * Optional stable `kid` to assign to the key loaded from `privateKeyPem`.
+   * When omitted a random UUID v4 is used.
+   */
+  initialKid?: string
 }
 
 /** Structured audit event emitted on every key state transition. */
