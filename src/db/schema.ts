@@ -1,4 +1,5 @@
 import type { Queryable } from './repositories/queryable.js'
+import { OUTBOX_TABLE_SCHEMA, OUTBOX_INDEXES } from './outbox/schema.js'
 
 const CREATE_TABLE_STATEMENTS = [
   `
@@ -69,9 +70,12 @@ const CREATE_TABLE_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS slash_events_bond_id_idx ON slash_events (bond_id)`,
   `CREATE INDEX IF NOT EXISTS score_history_identity_address_idx ON score_history (identity_address)`,
   `CREATE INDEX IF NOT EXISTS settlements_bond_settled_idx ON settlements (bond_id, settled_at DESC, id DESC)`,
+  OUTBOX_TABLE_SCHEMA,
+  ...OUTBOX_INDEXES,
 ] as const
 
 const DROP_TABLE_STATEMENTS = [
+  'DROP TABLE IF EXISTS event_outbox',
   'DROP TABLE IF EXISTS report_jobs',
   'DROP TABLE IF EXISTS score_history',
   'DROP TABLE IF EXISTS slash_events',
