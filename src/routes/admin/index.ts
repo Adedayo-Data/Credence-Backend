@@ -8,6 +8,13 @@ import { AdminService } from '../../services/admin/index.js'
 import { auditLogService } from '../../services/audit/index.js'
 import { AppError, ErrorCode, ValidationError } from '../../lib/errors.js'
 import type { AssignRoleRequest, RevokeApiKeyRequest } from '../../services/admin/types.js'
+import type { IssueImpersonationTokenRequest } from '../../services/impersonation/types.js'
+import { ReplayService } from '../../services/replayService.js'
+import { FailedInboundEventsRepository } from '../../db/repositories/failedInboundEventsRepository.js'
+import { registerAllReplayHandlers } from '../../services/replayHandlers.js'
+import { IdentityRepository } from '../../db/repositories/identityRepository.js'
+import { BondsRepository } from '../../db/repositories/bondsRepository.js'
+import { pool } from '../../db/pool.js'
 
 /**
  * Create the admin router with role and user management endpoints
@@ -16,11 +23,21 @@ import type { AssignRoleRequest, RevokeApiKeyRequest } from '../../services/admi
 export function createAdminRouter(): Router {
   const router = Router()
   const adminService = new AdminService(auditLogService)
+  
+  // Replay Service Setup
+  const replayRepo = new FailedInboundEventsRepository(pool)
+  const replayService = new ReplayService(replayRepo)
+  
+  const identityRepo = new IdentityRepository(pool)
+  const bondsRepo = new BondsRepository(pool)
+  
+  // Register handlers
+  registerAllReplayHandlers(replayService, identityRepo, bondsRepo)
 
   /**
    * GET /api/admin/users
    */
-  router.get('/users', requireUserAuth, requireAdminRole, (req: Request, res: Response, next) => {
+  router.get('/users', requireUserAuth, requireAdminRole, async (req: Request, res: Response) => {
     try {
       const authReq = req as AuthenticatedRequest
       const user = authReq.user!
@@ -41,7 +58,7 @@ export function createAdminRouter(): Router {
       }
 
       // Get users
-      const result = adminService.listUsers(user.id, user.email, { page, limit, offset }, filters)
+      const result = await adminService.listUsers(user.id, user.email, { page, limit, offset }, filters)
 
       res.status(200).json({
         success: true,
@@ -58,7 +75,7 @@ export function createAdminRouter(): Router {
   /**
    * POST /api/admin/roles/assign
    */
-  router.post('/roles/assign', requireUserAuth, requireAdminRole, (req: Request, res: Response, next) => {
+  router.post('/roles/assign', requireUserAuth, requireAdminRole, async (req: Request, res: Response) => {
     try {
       const authReq = req as AuthenticatedRequest
       const user = authReq.user!
@@ -69,7 +86,7 @@ export function createAdminRouter(): Router {
         throw new ValidationError('Missing required fields: userId, role')
       }
 
-      const result = adminService.assignRole(user.id, user.email, assignRequest)
+      const result = await adminService.assignRole(user.id, user.email, assignRequest)
 
       res.status(200).json({
         success: true,
@@ -84,7 +101,7 @@ export function createAdminRouter(): Router {
   /**
    * POST /api/admin/keys/revoke
    */
-  router.post('/keys/revoke', requireUserAuth, requireAdminRole, (req: Request, res: Response, next) => {
+  router.post('/keys/revoke', requireUserAuth, requireAdminRole, async (req: Request, res: Response) => {
     try {
       const authReq = req as AuthenticatedRequest
       const user = authReq.user!
@@ -95,7 +112,7 @@ export function createAdminRouter(): Router {
         throw new ValidationError('Missing required fields: userId, apiKey')
       }
 
-      const result = adminService.revokeApiKey(user.id, user.email, revokeRequest)
+      const result = await adminService.revokeApiKey(user.id, user.email, revokeRequest)
 
       res.status(200).json({
         success: true,
@@ -109,7 +126,7 @@ export function createAdminRouter(): Router {
   /**
    * GET /api/admin/audit-logs
    */
-  router.get('/audit-logs', requireUserAuth, requireAdminRole, (req: Request, res: Response, next) => {
+  router.get('/audit-logs', requireUserAuth, requireAdminRole, async (req: Request, res: Response) => {
     try {
       const authReq = req as AuthenticatedRequest
       const user = authReq.user!
@@ -120,10 +137,15 @@ export function createAdminRouter(): Router {
       const filters: any = {}
       if (req.query.action) filters.action = req.query.action
       if (req.query.adminId) filters.adminId = req.query.adminId
+      if (req.query.actorId) filters.actorId = req.query.actorId
       if (req.query.targetUserId) filters.targetUserId = req.query.targetUserId
+      if (req.query.resourceId) filters.resourceId = req.query.resourceId
+      if (req.query.resourceType) filters.resourceType = req.query.resourceType
       if (req.query.status) filters.status = req.query.status
+      if (req.query.from) filters.from = req.query.from
+      if (req.query.to) filters.to = req.query.to
 
-      const result = adminService.getAuditLogs(user.id, user.email, filters, limit, offset)
+      const result = await adminService.getAuditLogs(user.id, user.email, filters, limit, offset)
 
       res.status(200).json({
         success: true,
@@ -190,6 +212,55 @@ export function createAdminRouter(): Router {
       } else {
         res.end()
       }
+    }
+  })
+
+  /**
+   * GET /api/admin/events/failed
+   * 
+   * List failed inbound events for review
+   */
+  router.get('/events/failed', requireUserAuth, requireAdminRole, async (req: Request, res: Response) => {
+    try {
+      const filters: any = {}
+      if (req.query.status) filters.status = req.query.status
+      if (req.query.type) filters.type = req.query.type
+
+      const limit = parseInt(req.query.limit as string) || 50
+      const offset = parseInt(req.query.offset as string) || 0
+
+      const result = await replayService.listFailedEvents(filters, limit, offset)
+      
+      res.status(200).json({
+        success: true,
+        data: result
+      })
+    } catch (error: any) {
+      res.status(500).json({ error: 'InternalError', message: error.message })
+    }
+  })
+
+  /**
+   * POST /api/admin/events/replay/:id
+   * 
+   * Replay a specific failed event
+   */
+  router.post('/events/replay/:id', requireUserAuth, requireAdminRole, async (req: Request, res: Response) => {
+    try {
+      const authReq = req as AuthenticatedRequest
+      const admin = authReq.user!
+      const id = req.params.id
+
+      const result = await replayService.replayEvent(
+        id,
+        admin.id,
+        admin.email,
+        req.ip
+      )
+
+      res.status(200).json(result)
+    } catch (error: any) {
+      res.status(400).json({ error: 'ReplayFailed', message: error.message })
     }
   })
 

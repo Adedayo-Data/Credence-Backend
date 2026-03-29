@@ -66,6 +66,23 @@ export function createAttestationRouter(repo: AttestationRepository): Router {
     } catch (error) {
       next(error);
     }
+
+    const { page, limit, offset } = pagination;
+
+    const { attestations, total } = repo.findBySubject(identity, {
+      includeRevoked,
+      offset,
+      limit,
+    });
+    const paginationMeta = buildPaginationMeta(total, page, limit);
+
+    const body: AttestationListResponse = {
+      identity,
+      attestations,
+      ...paginationMeta,
+    };
+
+    res.json(body);
   });
 
   // ── POST /api/attestations ───────────────────────────────────────────

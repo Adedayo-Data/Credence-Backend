@@ -1,4 +1,4 @@
-import { AppError, ErrorCode, ValidationError } from '../lib/errors.js'
+import type { Router } from 'express'
 import { verificationService } from '../services/verificationService.js'
 
 /**

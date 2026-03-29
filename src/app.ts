@@ -1,9 +1,11 @@
-import express, { NextFunction, Request, Response } from 'express'
+import express from 'express'
+import { createJwksRouter } from './routes/jwks.js'
 import { createHealthRouter } from './routes/health.js'
 import { createDefaultProbes } from './services/health/probes.js'
 import trustRouter from './routes/trust.js'
 import bulkRouter from './routes/bulk.js'
 import { createAdminRouter } from './routes/admin/index.js'
+import { createPolicyRouter } from './routes/policy.js'
 import { createAnalyticsRouter } from './routes/analytics.js'
 import { AnalyticsService } from './services/analytics/service.js'
 import { pool } from './db/pool.js'
@@ -20,7 +22,7 @@ import {
 } from './schemas/index.js'
 import { compressionMiddleware, compressionMetricsMiddleware } from './middleware/compression.js'
 import { metricsMiddleware, register } from './middleware/metrics.js'
-import { errorHandler } from './middleware/errorHandler.js'
+import { createMembersRouter } from './routes/admin/member.ts'
 
 const app = express()
 
@@ -37,6 +39,10 @@ app.use(metricsMiddleware)
 app.use(compressionMetricsMiddleware)
 app.use(compressionMiddleware)
 app.use(express.json())
+
+// JWT public key set — unauthenticated, per RFC 8414 / OIDC Discovery conventions
+app.use('/.well-known/jwks.json', createJwksRouter())
+
 // Health – full readiness check with per-dependency status
 const healthProbes = createDefaultProbes()
 app.use('/api/health', createHealthRouter(healthProbes))
@@ -99,6 +105,9 @@ app.use('/api/bulk', bulkRouter)
 
 // Admin API
 app.use('/api/admin', createAdminRouter())
+
+// Policy engine – fine-grained org permissions
+app.use('/api/orgs/:orgId/policies', createPolicyRouter())
 
 const analyticsThresholdSeconds = Number(process.env.ANALYTICS_STALENESS_SECONDS ?? '300')
 const analyticsService = process.env.DATABASE_URL
