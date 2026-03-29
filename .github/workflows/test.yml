@@ -45,7 +45,7 @@ jobs:
             sleep 2
           done
 
-      - name: Run tests
+      - name: Run integration tests
         env:
           TEST_DATABASE_URL: postgresql://credence:credence@localhost:5432/credence_test
         run: npm test
@@ -54,6 +54,11 @@ jobs:
         env:
           TEST_DATABASE_URL: postgresql://credence:credence@localhost:5432/credence_test
         run: npm run coverage
+
+      - name: Enforce 95% coverage on audit-sensitive flows
+        env:
+          TEST_DATABASE_URL: postgresql://credence:credence@localhost:5432/credence_test
+        run: npm run coverage:audit
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
