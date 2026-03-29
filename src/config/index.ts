@@ -65,11 +65,11 @@ export const envSchema = z.object({
   ENABLE_TRUST_SCORING: z
     .string()
     .default('false')
-    .transform((val) => val === 'true'),
+    .transform((val: string) => val === 'true'),
   ENABLE_BOND_EVENTS: z
     .string()
     .default('false')
-    .transform((val) => val === 'true'),
+    .transform((val: string) => val === 'true'),
 
   // Horizon (optional)
   HORIZON_URL: z.string().url().optional(),
