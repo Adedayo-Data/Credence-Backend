@@ -112,6 +112,13 @@ export const identitySyncDuration = new client.Histogram({
   registers: [register]
 })
 
+export const staleCacheReadsTotal = new client.Counter({
+  name: 'stale_cache_reads_total',
+  help: 'Total number of stale read detections after a transaction status update',
+  labelNames: ['namespace'],
+  registers: [register]
+})
+
 // ============================================================================
 // Idempotency Metrics
 // ============================================================================
@@ -265,23 +272,15 @@ export function recordIdentitySync(
 }
 
 /**
- * Record idempotency guard check
+ * Record stale cache read
  * 
  * Usage:
  * ```typescript
- * import { recordIdempotencyCheck } from './middleware/metrics.js'
+ * import { recordStaleCacheRead } from './middleware/metrics.js'
  * 
- * const result = await guard.process('attestation', messageId, handler)
- * recordIdempotencyCheck('attestation', result.executed ? 'executed' : 'duplicate')
+ * recordStaleCacheRead('transaction_status')
  * ```
  */
-export function recordIdempotencyCheck(
-  handlerType: string,
-  result: 'executed' | 'duplicate'
-) {
-  idempotencyGuardChecks.inc({ handler_type: handlerType, result })
-  
-  if (result === 'duplicate') {
-    idempotencyDuplicatesDetected.inc({ handler_type: handlerType })
-  }
+export function recordStaleCacheRead(namespace: string) {
+  staleCacheReadsTotal.inc({ namespace })
 }
