@@ -120,14 +120,17 @@ export class IdentityService {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Horizon listener integration (stub)
-// ---------------------------------------------------------------------------
-
-export async function upsertIdentity(_identity: { id: string }): Promise<void> {
-  // In production, this should upsert to the identities table.
+export interface IdentityUpsertInput {
+  id: string
 }
 
-export async function upsertBond(_bond: { id: string; amount?: string; duration?: string | null }): Promise<void> {
-  // In production, this should upsert to the bonds table.
+export interface BondUpsertInput {
+  id: string
+  amount: string
+  duration: string | null
 }
+
+// Compatibility no-op upsert hooks used by Horizon listener tests.
+export async function upsertIdentity(_identity: IdentityUpsertInput): Promise<void> {}
+
+export async function upsertBond(_bond: BondUpsertInput): Promise<void> {}

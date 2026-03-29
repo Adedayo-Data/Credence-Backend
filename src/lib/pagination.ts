@@ -15,6 +15,11 @@ export interface PaginationMeta {
   hasNext: boolean
 }
 
+export interface DecodedCursor {
+  t: string
+  i: string
+}
+
 export interface PaginationParseOptions {
   defaultPage?: number
   defaultLimit?: number
@@ -136,20 +141,17 @@ export function buildPaginationMeta(
   }
 }
 
-export function encodeCursor(createdAt: string, id: string): string {
-  const raw = `${createdAt}|${id}`
-  return Buffer.from(raw, 'utf8').toString('base64url')
+export function encodeCursor(timestamp: string, id: string): string {
+  return Buffer.from(JSON.stringify({ t: timestamp, i: id }), 'utf8').toString('base64url')
 }
 
-export function decodeCursor(cursor: string): { t: string; i: string } | null {
+export function decodeCursor(cursor: string): DecodedCursor | null {
   try {
-    const raw = Buffer.from(cursor, 'base64url').toString('utf8')
-    const idx = raw.indexOf('|')
-    if (idx <= 0) return null
-    const t = raw.slice(0, idx)
-    const i = raw.slice(idx + 1)
-    if (!t || !i) return null
-    return { t, i }
+    const parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')) as Partial<DecodedCursor>
+    if (typeof parsed.t !== 'string' || typeof parsed.i !== 'string') {
+      return null
+    }
+    return { t: parsed.t, i: parsed.i }
   } catch {
     return null
   }

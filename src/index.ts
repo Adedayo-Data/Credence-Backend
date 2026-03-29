@@ -1,21 +1,23 @@
 import 'dotenv/config'
 import app from './app.js'
+import { createAdminRouter } from './routes/admin/index.js'
+import governanceRouter from './routes/governance.js'
+import disputesRouter from './routes/disputes.js'
+import evidenceRouter from './routes/evidence.js'
 import { loadConfig } from './config/index.js'
 import { pool } from './db/pool.js'
 import { AnalyticsService } from './services/analytics/service.js'
 import { AnalyticsRefreshWorker, getAnalyticsRefreshIntervalMs } from './jobs/analyticsRefreshWorker.js'
-import { pathToFileURL } from 'node:url'
+import { keyManager } from './services/keyManager/index.js'
 
+app.use('/api/admin', createAdminRouter())
+app.use('/api/governance', governanceRouter)
+app.use('/api/disputes', disputesRouter)
+app.use('/api/evidence', evidenceRouter)
 export { app }
 export default app
 
-const isEntrypoint = (() => {
-  const entry = process.argv[1]
-  if (!entry) return false
-  return import.meta.url === pathToFileURL(entry).href
-})()
-
-if (isEntrypoint) {
+if (process.env.NODE_ENV !== 'test') {
   try {
     const config = loadConfig()
 

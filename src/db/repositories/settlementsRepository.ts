@@ -3,8 +3,8 @@ import type { Queryable } from './queryable.js'
 export type SettlementStatus = 'pending' | 'settled' | 'failed'
 
 export interface Settlement {
-  id: number
-  bondId: number
+  id: string
+  bondId: string
   amount: string
   transactionHash: string
   settledAt: Date
@@ -14,7 +14,7 @@ export interface Settlement {
 }
 
 export interface CreateSettlementInput {
-  bondId: number
+  bondId: string | number
   amount: string
   transactionHash: string
   settledAt?: Date
@@ -42,8 +42,8 @@ const toDate = (value: Date | string): Date =>
   value instanceof Date ? value : new Date(value)
 
 const mapSettlement = (row: SettlementRow): Settlement => ({
-  id: Number(row.id),
-  bondId: Number(row.bond_id),
+  id: String(row.id),
+  bondId: String(row.bond_id),
   amount: row.amount,
   transactionHash: row.transaction_hash,
   settledAt: toDate(row.settled_at),
@@ -81,7 +81,9 @@ export class SettlementsRepository {
         status     = EXCLUDED.status,
         settled_at = EXCLUDED.settled_at,
         updated_at = NOW()
-      RETURNING id, bond_id, amount, transaction_hash, settled_at, status, created_at, updated_at
+      RETURNING id, bond_id, amount, transaction_hash, settled_at, status,
+                created_at, updated_at,
+                (updated_at > created_at) AS is_duplicate
       `,
       [input.bondId, input.amount, input.transactionHash, settledAt, status],
     )
@@ -90,7 +92,7 @@ export class SettlementsRepository {
     return { settlement: mapSettlement(row), isDuplicate }
   }
 
-  async findById(id: number): Promise<Settlement | null> {
+  async findById(id: string | number): Promise<Settlement | null> {
     const result = await this.db.query<SettlementRow>(
       `
       SELECT id, bond_id, amount, transaction_hash, settled_at, status, created_at, updated_at
@@ -103,7 +105,7 @@ export class SettlementsRepository {
     return result.rows[0] ? mapSettlement(result.rows[0]) : null
   }
 
-  async findByBondId(bondId: number): Promise<Settlement[]> {
+  async findByBondId(bondId: string | number): Promise<Settlement[]> {
     const result = await this.db.query<SettlementRow>(
       `
       SELECT id, bond_id, amount, transaction_hash, settled_at, status, created_at, updated_at
@@ -130,7 +132,7 @@ export class SettlementsRepository {
     return result.rows[0] ? mapSettlement(result.rows[0]) : null
   }
 
-  async countByBondId(bondId: number): Promise<number> {
+  async countByBondId(bondId: string | number): Promise<number> {
     const result = await this.db.query<{ count: string }>(
       `
       SELECT COUNT(*)::TEXT AS count
@@ -143,7 +145,7 @@ export class SettlementsRepository {
     return parseInt(result.rows[0]?.count ?? '0', 10)
   }
 
-  async delete(id: number): Promise<boolean> {
+  async delete(id: string | number): Promise<boolean> {
     const result = await this.db.query(
       `
       DELETE FROM settlements
