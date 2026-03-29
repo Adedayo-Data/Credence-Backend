@@ -75,6 +75,7 @@ export class WebhookService {
   /**
    * Emit an event to all subscribed webhooks.
    * Deliveries are queued and rate-limited per webhook.
+   * Permanently failed deliveries are routed to the DLQ if one is configured.
    */
   async emit(event: WebhookEventType, data: WebhookPayload['data']): Promise<WebhookDeliveryResult[]> {
     const webhooks = await this.store.getByEvent(event)
@@ -95,6 +96,14 @@ export class WebhookService {
         deliverWebhook(webhook, payload, this.deliveryOptions)
       ))
     )
+
+    if (this.dlq) {
+      await Promise.all(
+        results
+          .filter(r => !r.success)
+          .map(r => this.dlq!.push(buildDlqEntry(r, payload)))
+      )
+    }
 
     return results
   }
