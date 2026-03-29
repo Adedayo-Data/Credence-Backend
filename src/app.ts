@@ -21,6 +21,7 @@ import {
 } from './schemas/index.js'
 import { compressionMiddleware, compressionMetricsMiddleware } from './middleware/compression.js'
 import { metricsMiddleware, register } from './middleware/metrics.js'
+import { createMembersRouter } from './routes/admin/member.ts'
 
 const app = express()
 
