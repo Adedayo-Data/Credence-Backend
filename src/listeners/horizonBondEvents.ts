@@ -12,6 +12,7 @@ const server = new Horizon.Server(HORIZON_URL)
 
 /**
  * Subscribe to bond creation events from Horizon
+ * @param {ReplayService} replayService Service to capture failures
  * @param {function} onEvent Callback for each bond creation event
  */
 export function subscribeBondCreationEvents(onEvent?: (event: { identity: { id: string }; bond: { id: string; amount: string; duration: string | null } }) => void) {
