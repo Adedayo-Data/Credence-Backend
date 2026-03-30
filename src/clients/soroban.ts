@@ -4,6 +4,9 @@ import {
   type ProviderRetryPolicies,
   type RetryPolicy,
 } from '../lib/retryPolicy.js'
+import { executeSorobanOperation, createMetricsAdapter } from '../lib/timeoutExecutor.js'
+import { createDefaultMetricsCollector } from '../observability/timeoutMetrics.js'
+import { normalizeTransportError, isAbortError, isNetworkError } from './httpErrors.js'
 import { logger } from '../utils/logger.js'
 
 export type SorobanNetwork = 'testnet' | 'mainnet'
@@ -106,6 +109,7 @@ export class SorobanClient {
   private readonly fetchFn: typeof fetch
   private readonly sleepFn: (ms: number) => Promise<void>
   private readonly randomFn: () => number
+  private readonly metrics = createMetricsAdapter(createDefaultMetricsCollector())
 
   constructor(config: SorobanClientConfig, deps: SorobanClientDependencies = {}) {
     this.assertConfig(config)
@@ -226,78 +230,77 @@ export class SorobanClient {
     params: Record<string, unknown>,
     attempt: number,
   ): Promise<T> {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), this.timeoutMs)
+    return executeSorobanOperation(
+      method,
+      async (signal) => {
+        const response = await this.fetchFn(this.rpcUrl, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            id: `${method}-${attempt}`,
+            method,
+            params,
+          }),
+          signal,
+        })
 
-    try {
-      const response = await this.fetchFn(this.rpcUrl, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          id: `${method}-${attempt}`,
-          method,
-          params,
-        }),
-        signal: controller.signal,
-      })
+        if (!response.ok) {
+          throw this.buildHttpError(response.status, attempt)
+        }
 
-      if (!response.ok) {
-        throw this.buildHttpError(response.status, attempt)
-      }
-
-      let payload: SorobanRpcResponse<T>
-      try {
-        payload = (await response.json()) as SorobanRpcResponse<T>
-      } catch (error) {
-        // If the body read was interrupted by an abort (timeout fired while
-        // streaming) or a connection reset, surface the real transport error
-        // so the retry classifier handles it correctly instead of treating it
-        // as a non-retriable PARSE_ERROR.
-        const transport = normalizeTransportError(error)
-        if (transport !== null) {
+        let payload: SorobanRpcResponse<T>
+        try {
+          payload = (await response.json()) as SorobanRpcResponse<T>
+        } catch (error) {
+          // If the body read was interrupted by an abort (timeout fired while
+          // streaming) or a connection reset, surface the real transport error
+          // so the retry classifier handles it correctly instead of treating it
+          // as a non-retriable PARSE_ERROR.
+          const transport = normalizeTransportError(error)
+          if (transport !== null) {
+            throw new SorobanClientError({
+              code: transport.code === 'TIMEOUT' ? 'TIMEOUT_ERROR' : 'NETWORK_ERROR',
+              message:
+                transport.code === 'TIMEOUT'
+                  ? `Soroban RPC response timed out while reading body after ${this.timeoutMs}ms.`
+                  : `Soroban RPC transport error reading body: ${transport.message}`,
+              attempts: attempt,
+              cause: error,
+            })
+          }
           throw new SorobanClientError({
-            code: transport.code === 'TIMEOUT' ? 'TIMEOUT_ERROR' : 'NETWORK_ERROR',
-            message:
-              transport.code === 'TIMEOUT'
-                ? `Soroban RPC response timed out while reading body after ${this.timeoutMs}ms.`
-                : `Soroban RPC transport error reading body: ${transport.message}`,
+            code: 'PARSE_ERROR',
+            message: 'Unable to parse Soroban RPC response JSON.',
             attempts: attempt,
             cause: error,
           })
         }
-        throw new SorobanClientError({
-          code: 'PARSE_ERROR',
-          message: 'Unable to parse Soroban RPC response JSON.',
-          attempts: attempt,
-          cause: error,
-        })
-      }
 
-      if (payload.error) {
-        throw new SorobanClientError({
-          code: 'RPC_ERROR',
-          message: `Soroban RPC error: ${payload.error.message}`,
-          rpcCode: payload.error.code,
-          details: payload.error.data,
-          attempts: attempt,
-        })
-      }
+        if (payload.error) {
+          throw new SorobanClientError({
+            code: 'RPC_ERROR',
+            message: `Soroban RPC error: ${payload.error.message}`,
+            rpcCode: payload.error.code,
+            details: payload.error.data,
+            attempts: attempt,
+          })
+        }
 
-      if (payload.result === undefined) {
-        throw new SorobanClientError({
-          code: 'PARSE_ERROR',
-          message: 'Soroban RPC response missing result field.',
-          attempts: attempt,
-        })
-      }
+        if (payload.result === undefined) {
+          throw new SorobanClientError({
+            code: 'PARSE_ERROR',
+            message: 'Soroban RPC response missing result field.',
+            attempts: attempt,
+          })
+        }
 
-      return payload.result
-    } finally {
-      clearTimeout(timeout)
-    }
+        return payload.result
+      },
+      { overrideMs: this.timeoutMs, metrics: this.metrics },
+    )
   }
 
   private buildHttpError(status: number, attempts: number): SorobanClientError {
