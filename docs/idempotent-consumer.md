@@ -95,7 +95,7 @@ if (result.success) {
 | Approach | Pros | Cons |
 |----------|------|------|
 | **Write-layer dedupe (chosen)** | Simple, works with any queue, centralized | Requires DB write on every message |
-| Distributed locks (Redis/ZK) | Fast check | Extra infrastructure, lock管理复杂 |
+| Distributed locks (Redis/ZK) | Fast check | Extra infrastructure, lock management complex |
 | Client-side deduplication | No DB overhead | Not reliable, depends on client |
 | Exactly-once delivery (Flink) | Cleanest semantics | Complex infrastructure |
 
