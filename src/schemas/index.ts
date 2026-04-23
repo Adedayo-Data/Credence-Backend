@@ -23,3 +23,7 @@ export {
   type AttestationsQuery,
   type CreateAttestationBody,
 } from './attestations.js'
+export {
+  createPayoutSchema,
+  type CreatePayoutInput,
+} from './payout.js'

@@ -6,12 +6,15 @@ import trustRouter from './routes/trust.js'
 import bulkRouter from './routes/bulk.js'
 import importsRouter from './routes/imports.js'
 import { createAdminRouter } from './routes/admin/index.js'
+import { createWebhookAdminRouter } from './routes/admin/webhooks.js'
 import { createPolicyRouter } from './routes/policy.js'
 import { createAnalyticsRouter } from './routes/analytics.js'
+import { createPayoutsRouter } from './routes/payouts.js'
 import { AnalyticsService } from './services/analytics/service.js'
 import { pool } from './db/pool.js'
 import { validate } from './middleware/validate.js'
 import { requestIdMiddleware } from './middleware/requestId.js'
+import { errorHandler } from './middleware/errorHandler.js'
 import {
   buildPaginationMeta,
   parsePaginationParams,
@@ -110,6 +113,7 @@ app.use('/api/imports', importsRouter)
 // Admin API
 app.use('/api/admin', createAdminRouter())
 app.use('/api/admin/webhooks', createWebhookAdminRouter())
+app.use('/api/admin/members', createMembersRouter())
 
 // Policy engine – fine-grained org permissions
 app.use('/api/orgs/:orgId/policies', createPolicyRouter())
@@ -119,6 +123,9 @@ const analyticsService = process.env.DATABASE_URL
   ? new AnalyticsService(pool, analyticsThresholdSeconds)
   : undefined
 app.use('/api/analytics', createAnalyticsRouter(analyticsService))
+
+// Payouts
+app.use('/api/payouts', createPayoutsRouter())
 
 // Final error handler
 app.use(errorHandler)
