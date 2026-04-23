@@ -108,16 +108,18 @@ const CREATE_TABLE_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS attestations_bond_id_idx ON attestations (bond_id)`,
   `CREATE INDEX IF NOT EXISTS slash_events_bond_id_idx ON slash_events (bond_id)`,
   `CREATE INDEX IF NOT EXISTS score_history_identity_address_idx ON score_history (identity_address)`,
-  `CREATE INDEX IF NOT EXISTS settlements_bond_id_idx ON settlements (bond_id)`,
-  `CREATE INDEX IF NOT EXISTS settlements_status_idx ON settlements (status)`,
-  `CREATE INDEX IF NOT EXISTS settlements_settled_at_idx ON settlements (settled_at DESC)`,
   `CREATE INDEX IF NOT EXISTS audit_logs_actor_time_idx ON audit_logs (actor_id, occurred_at DESC)`,
   `CREATE INDEX IF NOT EXISTS audit_logs_resource_time_idx ON audit_logs (resource_id, occurred_at DESC)`,
   `CREATE INDEX IF NOT EXISTS audit_logs_time_idx ON audit_logs (occurred_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS settlements_bond_id_idx ON settlements (bond_id)`,
+  `CREATE INDEX IF NOT EXISTS settlements_status_idx ON settlements (status)`,
+  `CREATE INDEX IF NOT EXISTS settlements_settled_at_idx ON settlements (settled_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS settlements_transaction_hash_idx ON settlements (transaction_hash)`,
 ] as const
 
 const DROP_TABLE_STATEMENTS = [
-  'DROP TABLE IF EXISTS settlements, event_outbox',
+  'DROP TABLE IF EXISTS event_outbox',
+  'DROP TABLE IF EXISTS settlements',
   'DROP TABLE IF EXISTS report_jobs',
   'DROP TABLE IF EXISTS score_history',
   'DROP TABLE IF EXISTS audit_logs',
