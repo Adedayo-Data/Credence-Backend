@@ -132,7 +132,7 @@ export async function createSchema(db: Queryable): Promise<void> {
 
 export async function resetDatabase(db: Queryable): Promise<void> {
   await db.query(
-    'TRUNCATE TABLE report_jobs, audit_logs, score_history, slash_events, attestations, bonds, identities RESTART IDENTITY CASCADE'
+    'TRUNCATE TABLE idempotency_keys, report_jobs, audit_logs, score_history, slash_events, attestations, bonds, identities RESTART IDENTITY CASCADE'
   )
 }
 
@@ -140,4 +140,6 @@ export async function dropSchema(db: Queryable): Promise<void> {
   for (const statement of DROP_TABLE_STATEMENTS) {
     await db.query(statement)
   }
+  await db.query('DROP TABLE IF EXISTS idempotency_keys')
+  await db.query('DROP TABLE IF EXISTS settlements')
 }

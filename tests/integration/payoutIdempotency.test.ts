@@ -1,19 +1,17 @@
-import assert from 'node:assert/strict'
-import { describe, it, before, after, beforeEach } from 'node:test'
+import { describe, it, beforeAll, afterAll, beforeEach, expect } from 'vitest'
 import request from 'supertest'
 import app from '../../src/app.js'
 import { createTestDatabase, type TestDatabase } from './testDatabase.js'
 import { createSchema, dropSchema, resetDatabase } from '../../src/db/schema.js'
-import { pool } from '../../src/db/pool.js'
 import { IdentitiesRepository, BondsRepository } from '../../src/db/repositories/index.js'
 
 describe('Payout Idempotency Integration', () => {
   let database: TestDatabase
   let identitiesRepo: IdentitiesRepository
   let bondsRepo: BondsRepository
-  let bondId: string
+  let bondId: any
 
-  before(async () => {
+  beforeAll(async () => {
     database = await createTestDatabase()
     await createSchema(database.pool)
     
@@ -40,7 +38,7 @@ describe('Payout Idempotency Integration', () => {
     bondId = bond.id
   })
 
-  after(async () => {
+  afterAll(async () => {
     await dropSchema(database.pool)
     await database.close()
   })
@@ -61,9 +59,9 @@ describe('Payout Idempotency Integration', () => {
       .set('Idempotency-Key', idempotencyKey)
       .send(payoutData)
 
-    assert.equal(res1.status, 201)
-    assert.equal(res1.body.success, true)
-    assert.equal(res1.body.data.amount, '100')
+    expect(res1.status).toBe(201)
+    expect(res1.body.success).toBe(true)
+    expect(res1.body.data.amount).toBe('100')
     const firstPayoutId = res1.body.data.id
 
     // Second request with same key
@@ -72,9 +70,9 @@ describe('Payout Idempotency Integration', () => {
       .set('Idempotency-Key', idempotencyKey)
       .send(payoutData)
 
-    assert.equal(res2.status, 201) // Replayed status
-    assert.deepEqual(res2.body, res1.body)
-    assert.equal(res2.body.data.id, firstPayoutId)
+    expect(res2.status).toBe(201) // Replayed status
+    expect(res2.body).toEqual(res1.body)
+    expect(res2.body.data.id).toBe(firstPayoutId)
   })
 
   it('should return 400 if the same idempotency key is used with a different payload', async () => {
@@ -105,8 +103,8 @@ describe('Payout Idempotency Integration', () => {
       .set('Idempotency-Key', idempotencyKey)
       .send(payoutData2)
 
-    assert.equal(res2.status, 400)
-    assert.equal(res2.body.error, 'IdempotencyParameterMismatch')
+    expect(res2.status).toBe(400)
+    expect(res2.body.error).toBe('IdempotencyParameterMismatch')
   })
 
   it('should ignore key order in payload for hash comparison', async () => {
@@ -137,7 +135,7 @@ describe('Payout Idempotency Integration', () => {
       .set('Idempotency-Key', idempotencyKey)
       .send(payoutData2)
 
-    assert.equal(res2.status, 201)
-    assert.deepEqual(res2.body, res1.body)
+    expect(res2.status).toBe(201)
+    expect(res2.body).toEqual(res1.body)
   })
 })
