@@ -127,6 +127,23 @@ export const envSchema = z.object({
   OUTBOUND_RETRY_WEBHOOK_MAX_DELAY_MS: z.coerce.number().int().min(1).optional(),
   OUTBOUND_RETRY_WEBHOOK_BACKOFF_MULTIPLIER: z.coerce.number().min(1).optional(),
   OUTBOUND_RETRY_WEBHOOK_JITTER_STRATEGY: z.enum(['none', 'full', 'equal']).optional(),
+
+  // Database lock timeouts
+  DB_LOCK_TIMEOUT_READONLY_MS: z
+    .string()
+    .default('1000')
+    .transform(Number)
+    .pipe(z.number().int().min(100)),
+  DB_LOCK_TIMEOUT_DEFAULT_MS: z
+    .string()
+    .default('2000')
+    .transform(Number)
+    .pipe(z.number().int().min(100)),
+  DB_LOCK_TIMEOUT_CRITICAL_MS: z
+    .string()
+    .default('5000')
+    .transform(Number)
+    .pipe(z.number().int().min(100)),
 })
 
 export type Env = z.infer<typeof envSchema>
@@ -137,6 +154,11 @@ export interface Config {
   logLevel: 'debug' | 'info' | 'warn' | 'error'
   db: {
     url: string
+    lockTimeouts: {
+      readonlyMs: number
+      defaultMs: number
+      criticalMs: number
+    }
   }
   redis: {
     url: string
@@ -245,6 +267,11 @@ function mapEnvToConfig(env: Env): Config {
     logLevel: env.LOG_LEVEL,
     db: {
       url: env.DB_URL,
+      lockTimeouts: {
+        readonlyMs: env.DB_LOCK_TIMEOUT_READONLY_MS,
+        defaultMs: env.DB_LOCK_TIMEOUT_DEFAULT_MS,
+        criticalMs: env.DB_LOCK_TIMEOUT_CRITICAL_MS,
+      },
     },
     redis: {
       url: env.REDIS_URL,
