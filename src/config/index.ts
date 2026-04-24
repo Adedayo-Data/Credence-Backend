@@ -113,20 +113,64 @@ export const envSchema = z.object({
   OUTBOUND_RETRY_BASE_DELAY_MS: z.coerce.number().int().min(1).default(200),
   OUTBOUND_RETRY_MAX_DELAY_MS: z.coerce.number().int().min(1).default(2_000),
   OUTBOUND_RETRY_BACKOFF_MULTIPLIER: z.coerce.number().min(1).default(2),
-  OUTBOUND_RETRY_JITTER_STRATEGY: z.enum(['none', 'full', 'equal']).default('none'),
+  OUTBOUND_RETRY_JITTER_STRATEGY: z
+    .enum(['none', 'full', 'equal'])
+    .default('none'),
 
   // Provider-specific outbound retry overrides
-  OUTBOUND_RETRY_SOROBAN_MAX_ATTEMPTS: z.coerce.number().int().min(1).optional(),
-  OUTBOUND_RETRY_SOROBAN_BASE_DELAY_MS: z.coerce.number().int().min(1).optional(),
-  OUTBOUND_RETRY_SOROBAN_MAX_DELAY_MS: z.coerce.number().int().min(1).optional(),
-  OUTBOUND_RETRY_SOROBAN_BACKOFF_MULTIPLIER: z.coerce.number().min(1).optional(),
-  OUTBOUND_RETRY_SOROBAN_JITTER_STRATEGY: z.enum(['none', 'full', 'equal']).optional(),
+  OUTBOUND_RETRY_SOROBAN_MAX_ATTEMPTS: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .optional(),
+  OUTBOUND_RETRY_SOROBAN_BASE_DELAY_MS: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .optional(),
+  OUTBOUND_RETRY_SOROBAN_MAX_DELAY_MS: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .optional(),
+  OUTBOUND_RETRY_SOROBAN_BACKOFF_MULTIPLIER: z.coerce
+    .number()
+    .min(1)
+    .optional(),
+  OUTBOUND_RETRY_SOROBAN_JITTER_STRATEGY: z
+    .enum(['none', 'full', 'equal'])
+    .optional(),
 
-  OUTBOUND_RETRY_WEBHOOK_MAX_ATTEMPTS: z.coerce.number().int().min(1).optional(),
-  OUTBOUND_RETRY_WEBHOOK_BASE_DELAY_MS: z.coerce.number().int().min(1).optional(),
-  OUTBOUND_RETRY_WEBHOOK_MAX_DELAY_MS: z.coerce.number().int().min(1).optional(),
-  OUTBOUND_RETRY_WEBHOOK_BACKOFF_MULTIPLIER: z.coerce.number().min(1).optional(),
-  OUTBOUND_RETRY_WEBHOOK_JITTER_STRATEGY: z.enum(['none', 'full', 'equal']).optional(),
+  OUTBOUND_RETRY_WEBHOOK_MAX_ATTEMPTS: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .optional(),
+  OUTBOUND_RETRY_WEBHOOK_BASE_DELAY_MS: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .optional(),
+  OUTBOUND_RETRY_WEBHOOK_MAX_DELAY_MS: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .optional(),
+  OUTBOUND_RETRY_WEBHOOK_BACKOFF_MULTIPLIER: z.coerce
+    .number()
+    .min(1)
+    .optional(),
+  OUTBOUND_RETRY_WEBHOOK_JITTER_STRATEGY: z
+    .enum(['none', 'full', 'equal'])
+    .optional(),
+
+  // Timeout overrides
+  TIMEOUT_DB_MS: z.coerce.number().int().min(1).optional(),
+  TIMEOUT_CACHE_MS: z.coerce.number().int().min(1).optional(),
+  TIMEOUT_QUEUE_MS: z.coerce.number().int().min(1).optional(),
+  TIMEOUT_HTTP_MS: z.coerce.number().int().min(1).optional(),
+  TIMEOUT_SOROBAN_MS: z.coerce.number().int().min(1).optional(),
+  TIMEOUT_WEBHOOK_MS: z.coerce.number().int().min(1).optional(),
 })
 
 export type Env = z.infer<typeof envSchema>
@@ -179,6 +223,14 @@ export interface Config {
       defaults: RetryPolicy
       providers: Record<string, RetryPolicyOverrides | undefined>
     }
+  }
+  timeouts: {
+    db?: number
+    cache?: number
+    queue?: number
+    http?: number
+    soroban?: number
+    webhook?: number
   }
 }
 
@@ -273,6 +325,14 @@ function mapEnvToConfig(env: Env): Config {
     cors: {
       origin: env.CORS_ORIGIN,
     },
+    timeouts: {
+      db: env.TIMEOUT_DB_MS,
+      cache: env.TIMEOUT_CACHE_MS,
+      queue: env.TIMEOUT_QUEUE_MS,
+      http: env.TIMEOUT_HTTP_MS,
+      soroban: env.TIMEOUT_SOROBAN_MS,
+      webhook: env.TIMEOUT_WEBHOOK_MS,
+    },
     outboundHttp: {
       retry: {
         defaults: defaultRetryPolicy,
@@ -284,6 +344,8 @@ function mapEnvToConfig(env: Env): Config {
   if (env.HORIZON_URL) {
     config.horizon = { url: env.HORIZON_URL }
   }
+
+  
 
   return config
 }
