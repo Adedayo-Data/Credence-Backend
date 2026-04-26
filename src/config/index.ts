@@ -169,6 +169,11 @@ export interface Config {
   logLevel: 'debug' | 'info' | 'warn' | 'error'
   db: {
     url: string
+    lockTimeouts: {
+      readonlyMs: number
+      defaultMs: number
+      criticalMs: number
+    }
   }
   redis: {
     url: string
@@ -285,6 +290,11 @@ function mapEnvToConfig(env: Env): Config {
     logLevel: env.LOG_LEVEL,
     db: {
       url: env.DB_URL,
+      lockTimeouts: {
+        readonlyMs: env.DB_LOCK_TIMEOUT_READONLY_MS,
+        defaultMs: env.DB_LOCK_TIMEOUT_DEFAULT_MS,
+        criticalMs: env.DB_LOCK_TIMEOUT_CRITICAL_MS,
+      },
     },
     redis: {
       url: env.REDIS_URL,
