@@ -13,6 +13,9 @@ import { AnalyticsService } from './services/analytics/service.js'
 import { pool } from './db/pool.js'
 import { validate } from './middleware/validate.js'
 import { requestIdMiddleware } from './middleware/requestId.js'
+import { errorHandler } from './middleware/errorHandler.js'
+import { createRateLimitMiddleware } from './middleware/rateLimit.js'
+import { validateConfig } from './config/index.js'
 import {
   buildPaginationMeta,
   parsePaginationParams,
@@ -28,6 +31,23 @@ import { createWebhookAdminRouter } from './routes/admin/webhooks.js'
 import { errorHandler } from './middleware/errorHandler.js'
 
 const app = express()
+
+// Load config safely; fall back to defaults if env is incomplete (e.g. in tests)
+let rateLimitConfig: { enabled: boolean; windowSec: number; maxFree: number; maxPro: number; maxEnterprise: number; failOpen: boolean }
+try {
+  rateLimitConfig = validateConfig(process.env).rateLimit
+} catch {
+  rateLimitConfig = {
+    enabled: true,
+    windowSec: 60,
+    maxFree: 100,
+    maxPro: 1000,
+    maxEnterprise: 10000,
+    failOpen: true,
+  }
+}
+
+const rateLimitMiddleware = createRateLimitMiddleware(rateLimitConfig)
 
 // Request context and correlation IDs
 app.use(requestIdMiddleware)
@@ -49,6 +69,10 @@ app.use('/.well-known/jwks.json', createJwksRouter())
 // Health – full readiness check with per-dependency status
 const healthProbes = createDefaultProbes()
 app.use('/api/health', createHealthRouter(healthProbes))
+
+// Apply tenant-level rate limiting to all API routes below this line.
+// Excluded above: metrics, JWKS, health (unauthenticated / infra endpoints).
+app.use('/api', rateLimitMiddleware)
 
 // Trust score
 app.use('/api/trust', trustRouter)
