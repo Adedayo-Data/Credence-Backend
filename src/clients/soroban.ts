@@ -9,6 +9,7 @@ import { createDefaultMetricsCollector } from '../observability/timeoutMetrics.j
 import { normalizeTransportError, isAbortError } from './httpErrors.js'
 import { classifyTransportError } from '../utils/retryClassifier.js'
 import { logger } from '../utils/logger.js'
+import { resolveTimeout, createTimeoutConfig } from '../lib/timeouts.js'
 
 export type SorobanNetwork = 'testnet' | 'mainnet'
 
@@ -118,7 +119,10 @@ export class SorobanClient {
     this.rpcUrl = config.rpcUrl
     this.network = config.network
     this.contractId = config.contractId
-    this.timeoutMs = config.timeoutMs ?? 5_000
+    this.timeoutMs = resolveTimeout(
+      'soroban',
+      createTimeoutConfig('soroban', 'SOROBAN_RPC_TIMEOUT', config.timeoutMs)
+    )
     this.retryOptions = resolveProviderRetryPolicy('soroban', DEFAULT_RETRY, {
       providerPolicies: config.retryPolicies,
       overrides: config.retry,
