@@ -60,6 +60,7 @@ app.get('/metrics', async (_req, res) => {
 })
 
 app.use(metricsMiddleware)
+app.use(latencyMetricsMiddleware)
 app.use(compressionMetricsMiddleware)
 app.use(compressionMiddleware)
 app.use(express.json())
