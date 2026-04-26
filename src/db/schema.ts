@@ -180,4 +180,6 @@ export async function dropSchema(db: Queryable): Promise<void> {
   for (const statement of DROP_TABLE_STATEMENTS) {
     await db.query(statement)
   }
+  await db.query('DROP TABLE IF EXISTS idempotency_keys')
+  await db.query('DROP TABLE IF EXISTS settlements')
 }

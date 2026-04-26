@@ -9,6 +9,7 @@ import { createAdminRouter } from './routes/admin/index.js'
 import { createWebhookAdminRouter } from './routes/admin/webhooks.js'
 import { createPolicyRouter } from './routes/policy.js'
 import { createAnalyticsRouter } from './routes/analytics.js'
+import { createPayoutsRouter } from './routes/payouts.js'
 import { AnalyticsService } from './services/analytics/service.js'
 import { pool } from './db/pool.js'
 import { validate } from './middleware/validate.js'
@@ -136,6 +137,7 @@ app.use('/api/imports', importsRouter)
 // Admin API
 app.use('/api/admin', createAdminRouter())
 app.use('/api/admin/webhooks', createWebhookAdminRouter())
+app.use('/api/admin/members', createMembersRouter())
 
 // Integration API key management (create, list, rotate, revoke)
 app.use('/api/integrations/keys', createApiKeyRouter())
@@ -148,6 +150,9 @@ const analyticsService = process.env.DATABASE_URL
   ? new AnalyticsService(pool, analyticsThresholdSeconds)
   : undefined
 app.use('/api/analytics', createAnalyticsRouter(analyticsService))
+
+// Payouts
+app.use('/api/payouts', createPayoutsRouter())
 
 // Final error handler
 app.use(errorHandler)
